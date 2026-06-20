@@ -1,0 +1,46 @@
+# .github/workflows/a_share_report.yml
+#
+# A股早报 — MFTSR Alpha
+# 每天一次，UK时间07:00（距A股收盘约1小时），全中文输出
+
+name: A股早报
+
+on:
+  schedule:
+    # ── BST 夏令时版本 ──────────────────────────────────────────────
+    # UK 07:00 BST = 06:00 UTC
+    - cron: '0 6 * * 1-5'
+
+    # ── GMT 冬令时版本 ──────────────────────────────────────────────
+    # 切换时注释掉上面一行，取消下面这行注释：
+    # UK 07:00 GMT = 07:00 UTC
+    # - cron: '0 7 * * 1-5'
+
+  workflow_dispatch:
+
+jobs:
+  run-a-share-report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Python 环境
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 安装依赖
+        run: |
+          pip install --upgrade pip
+          pip install anthropic yfinance requests numpy pandas
+
+      - name: 运行A股分析并发送早报
+        env:
+          ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_KEY }}
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          CHAT_ID: ${{ secrets.CHAT_ID }}
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+        run: python a_share_report.py
