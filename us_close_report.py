@@ -708,8 +708,8 @@ PE={md['pe_ratio']}x  FCF收益率={md['fcf_yield']:.1f}%
 === Market Data ===
 Price: ${md['price']} ({md['change_pct']:+.2f}%)
 52W Range: ${md['lo_52w']} — ${md['hi_52w']} ({md['pct_from_52w_hi']:.1f}% from high)
-MA20/50/200: ${md['ma20']} / ${md['ma50']} / ${md['ma200']}
-RSI(14)={md['rsi']:.0f}  MACD hist={md['macd_hist']:.3f}  Volume ratio={md['vol_ratio']:.1f}x
+MA20/50/200: ${ma20_str} / ${ma50_str} / ${ma200_str}
+RSI(14)={rsi_str}  MACD hist={md['macd_hist']:.3f}  Volume ratio={md['vol_ratio']:.1f}x
 
 === Fundamentals ===
 PE={md['pe_ratio']}x  FCF yield={md['fcf_yield']:.1f}%
@@ -757,12 +757,15 @@ def get_ai_commentary(ticker: dict, md: dict, scores: dict, macro: dict, report_
 
 def _fallback_commentary(ticker: dict, md: dict, scores: dict, lang: str) -> str:
     sym = ticker["sym"]
+    rsi_disp = _fmt(md.get('rsi', 'N/A'))
+    ma50_status_zh = '多头排列' if md.get('above_ma50') else ('跌破MA50' if md.get('above_ma50') is False else '数据不足')
+    ma50_status_en = 'above MA50' if md.get('above_ma50') else ('below MA50' if md.get('above_ma50') is False else 'insufficient data')
     if lang == "zh":
         return (f"[AI离线] {sym} 规则评分摘要\n综合评分: {scores['composite']}/100 → {scores['signal']}\n"
-                f"RSI={md['rsi']:.0f}, {'多头排列' if md.get('above_ma50') else '跌破MA50'}\n"
+                f"RSI={rsi_disp}, {ma50_status_zh}\n"
                 f"止损${scores['stop_loss']} | 仓位≤{scores['position_pct']}%")
     return (f"[AI offline] {sym} rule-based summary\nComposite: {scores['composite']}/100 → {scores['signal']}\n"
-            f"RSI={md['rsi']:.0f}, {'above MA50' if md.get('above_ma50') else 'below MA50'}\n"
+            f"RSI={rsi_disp}, {ma50_status_en}\n"
             f"Stop-loss ${scores['stop_loss']} | Position ≤{scores['position_pct']}%")
 
 
@@ -884,11 +887,12 @@ def build_ticker_message(ticker: dict, md: dict, scores: dict, commentary: str, 
         stop_label, pos_label = "Stop-loss", "Position"
 
     alert_line = f"\n⚠️ <b>{alert_label}</b>: {', '.join(scores['alerts'])}" if scores.get("alerts") else ""
+    rsi_disp = _fmt(md.get('rsi', 'N/A'))
 
     return (
         f"\n{sig} <b>{sym}</b>  {_escape(name)}\n"
         f"  💰 <b>${md['price']}</b>  {chg_arrow}{abs(md['change_pct']):.2f}%   "
-        f"RSI={md['rsi']:.0f}  Vol={md['vol_ratio']:.1f}x\n"
+        f"RSI={rsi_disp}  Vol={md['vol_ratio']:.1f}x\n"
         f"\n<b>{composite_label}: {scores['composite']}/100</b>  [{_score_bar(scores['composite'])}]\n"
         f"  {dim_labels[0]}{scores['macro']:>3} {_dim_label(scores['macro'])}  "
         f"{dim_labels[1]}{scores['fundamental']:>3} {_dim_label(scores['fundamental'])}\n"
