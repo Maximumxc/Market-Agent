@@ -1,0 +1,48 @@
+# .github/workflows/us_close_report.yml
+#
+# 美股收盘完整报告 — MFTSR Alpha
+# 每天一次，UK时间21:30（对应美东16:30，收盘后），双语输出（中文+英文）
+
+name: 美股收盘报告
+
+on:
+  schedule:
+    # ── BST 夏令时版本（3月最后周日 ~ 10月最后周日适用）──────────────
+    # UK 21:30 BST = 20:30 UTC
+    - cron: '30 20 * * 1-5'
+
+    # ── GMT 冬令时版本（10月最后周日 ~ 3月最后周日适用）──────────────
+    # 切换时注释掉上面一行，取消下面这行注释：
+    # UK 21:30 GMT = 21:30 UTC
+    # - cron: '30 21 * * 1-5'
+
+  workflow_dispatch:   # 允许手动触发测试
+
+jobs:
+  run-close-report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Python 环境
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 安装依赖
+        run: |
+          pip install --upgrade pip
+          pip install anthropic yfinance requests numpy pandas
+
+      - name: 运行美股收盘分析并发送报告
+        env:
+          ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_KEY }}
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          CHAT_ID: ${{ secrets.CHAT_ID }}
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+          REPORT_TYPE: "close"
+          MAX_TICKERS: "15"
+        run: python us_close_report.py
