@@ -1,0 +1,46 @@
+# .github/workflows/us_midday_brief.yml
+#
+# 美股简报 — MFTSR Alpha
+# 每天一次，UK时间16:00：市场总览(VIX/指数)+板块强弱+主题动态(AI/财报/地缘政治)
+# +个股技术面与新闻（无完整MFTSR评分）
+
+name: 美股简报
+
+on:
+  schedule:
+    # ── BST 夏令时版本 ──────────────────────────────────────────────
+    # UK 16:00 BST = 15:00 UTC
+    - cron: '0 15 * * 1-5'
+
+    # ── GMT 冬令时版本 ──────────────────────────────────────────────
+    # 切换时注释掉上面一行，取消下面这行注释：
+    # UK 16:00 GMT = 16:00 UTC
+    # - cron: '0 16 * * 1-5'
+
+  workflow_dispatch:
+
+jobs:
+  run-midday-brief:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Python 环境
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 安装依赖
+        run: |
+          pip install --upgrade pip
+          pip install anthropic yfinance requests numpy pandas
+
+      - name: 运行美股简报（市场总览+板块+主题+个股，含新闻搜索）
+        env:
+          ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_KEY }}
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          CHAT_ID: ${{ secrets.CHAT_ID }}
+        run: python us_midday_brief.py
