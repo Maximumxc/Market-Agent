@@ -1,0 +1,3493 @@
+{
+  "generated_at": "2026-06-21T21:39:52Z",
+  "generated_at_uk": "2026-06-21 21:39",
+  "weights": {
+    "macro": 0.2,
+    "fundamental": 0.35,
+    "technical": 0.2,
+    "sentiment": 0.1,
+    "risk": 0.15
+  },
+  "macro": {
+    "commentary": "# MFTSR Alpha — 今日宏观简报\n**收盘时间标记 | 数据截至当日盘后**\n\n---\n\n## 【今日宏观核心判断】\n风险资产在\"软着陆叙事修复\"中短线反弹，但CPI粘性与高实际利率构成中期天花板，行情性质更接近技术性修复而非趋势反转。\n\n---\n\n## 【经济数据与美联储】\n- **CPI环比+0.47%**：显著高于0.2%的中性水平，折算年化接近5.6%，通胀二次顽固信号明确。市场若持续定价降息，与该数据存在逻辑张力——此为当前最大的定价矛盾。\n- **非农+17.2万**：劳动力市场温和降温但仍具韧性，未触发\"衰退恐慌\"，支撑消费端基本面；同时给了美联储维持限制性立场的政治空间。\n- **Fed Funds 3.63% vs US10Y 4.45%**：实际长端利率仍处限制性区间，曲线形态（短端低于长端约82bp）暗示市场对未来降息路径仍有预期，但通胀数据正在侵蚀该预期的可信度；**美联储短期按兵不动概率极高**。\n\n---\n\n## 【VIX与风险偏好】\n- **VIX 16.4，单日下行11%**：恐慌情绪快速退潮，期权市场对近期尾部风险的对冲需求收缩，资金重新向风险资产倾斜——纳指+1.91%的超额表现与此一致，成长/科技方向受益最直接。\n- 需注意：VIX 16附近并非\"过度乐观\"警戒区（通常以12-13为界），当前读数属于健康区间，但若后续通胀数据再次超预期，波动率压缩空间有限，下行保护成本仍值得关注。\n\n---\n\n## 【地缘政治与关税背景】\n**⚠️ 以下为定性判断，基于模型知识库，非实时新闻，不计入任何数值评分维度。**\n\n- **中美关税格局**：高关税壁垒的结构性存在持续压制供应链效率和企业利润率预期，尤其对半导体、消费电子、工业品板块构成长尾成本压力。短期若出现任何\"豁免清单\"或\"磋商信号\"，可能催化超预期的风险偏好脉冲。\n- **中东与能源风险**：地区紧张局势对油价形成隐性支撑底部，WTI $76附近的相对平稳（-0.08%）表明市场当前未对突发升级定价，但这一\"平静\"本身即是尾部风险未被计价的体现。\n- **美元走弱趋势（DXY 100.85）**：DXY跌破101关口",
+    "vix": 16.4,
+    "vix_chg_pct": -11.06,
+    "dxy": 100.85,
+    "us10y": 4.45,
+    "sp500_chg_pct": 1.08,
+    "nasdaq_chg_pct": 1.91,
+    "crude": 76.54,
+    "crude_chg_pct": -0.08,
+    "gold": 4172.9,
+    "fed_funds_rate": 3.63,
+    "cpi_mom_pct": 0.47,
+    "nfp_change_k": 172.0
+  },
+  "stocks": [
+    {
+      "sym": "MU",
+      "name": "Micron Technology",
+      "sector": "Memory/Semiconductors",
+      "price": 1133.99,
+      "change_pct": 8.7,
+      "rsi": 59.3,
+      "pe_ratio": 53.5,
+      "forward_pe": 9.6,
+      "peg_ratio": 0.36,
+      "ma5": 1053.51,
+      "ma20": 965.58,
+      "ma50": 732.8,
+      "ma_cross": null,
+      "vol_ratio": 1.19,
+      "rel_strength_3m": 170.9,
+      "vol_30d_annualized": 115.7,
+      "target_price": 945.6,
+      "target_high": 1750.0,
+      "target_low": 249.0,
+      "num_analysts": 40,
+      "upside": -16.6,
+      "rev_growth": 196.3,
+      "eps_growth": 756.0,
+      "gross_margin": 58.4,
+      "fcf_yield": 0.2,
+      "fcf_margin": 5.0,
+      "inst_pct": 81.6,
+      "short_ratio": 0.7,
+      "analyst_rec": 1.48,
+      "beta": 2.17,
+      "market_cap_b": 1278.8,
+      "thin_history": false,
+      "trading_days": 90,
+      "scores": {
+        "composite": 80,
+        "label": "强烈买入",
+        "action": "积极加仓",
+        "macro": 80,
+        "fundamental": 86,
+        "technical": 74,
+        "sentiment": 88,
+        "risk": 72,
+        "stop_loss": 1065.95,
+        "position_pct": 9,
+        "alerts": [],
+        "fundamental_sub": [
+          {
+            "label": "Revenue Growth (YoY代理3Y CAGR)",
+            "weight": 0.2,
+            "score": 100,
+            "detail": "+196.3%"
+          },
+          {
+            "label": "Profit Growth (YoY代理3Y CAGR)",
+            "weight": 0.2,
+            "score": 100,
+            "detail": "+756.0%"
+          },
+          {
+            "label": "FCF Margin",
+            "weight": 0.1225,
+            "score": 55,
+            "detail": "5.0%"
+          },
+          {
+            "label": "Gross Margin",
+            "weight": 0.105,
+            "score": 80,
+            "detail": "58.4%"
+          },
+          {
+            "label": "EPS Growth",
+            "weight": 0.1225,
+            "score": 100,
+            "detail": "+756.0%"
+          },
+          {
+            "label": "Forward PE",
+            "weight": 0.075,
+            "score": 95,
+            "detail": "9.6x"
+          },
+          {
+            "label": "PEG Ratio",
+            "weight": 0.1,
+            "score": 100,
+            "detail": "0.36"
+          },
+          {
+            "label": "FCF Yield",
+            "weight": 0.075,
+            "score": 20,
+            "detail": "0.2%"
+          }
+        ],
+        "technical_sub": [
+          {
+            "label": "Trend Composite",
+            "weight": 0.25,
+            "score": 68,
+            "detail": "MA5/20无交叉, 站上MA20:True, MA50:True, MA200:None"
+          },
+          {
+            "label": "3M Relative Strength vs QQQ",
+            "weight": 0.25,
+            "score": 100,
+            "detail": "+170.9pp"
+          },
+          {
+            "label": "RSI(14)",
+            "weight": 0.15,
+            "score": 100,
+            "detail": "59"
+          },
+          {
+            "label": "Volume Ratio",
+            "weight": 0.15,
+            "score": 70,
+            "detail": "1.19x"
+          },
+          {
+            "label": "30D Annualised Volatility",
+            "weight": 0.1,
+            "score": 35,
+            "detail": "115.7%"
+          },
+          {
+            "label": "Beta vs QQQ/S&P",
+            "weight": 0.1,
+            "score": 35,
+            "detail": "2.17"
+          }
+        ],
+        "sentiment_sub": [
+          {
+            "label": "VIX",
+            "weight": 0.6,
+            "score": 90,
+            "detail": "16.4"
+          },
+          {
+            "label": "Equity Put/Call Ratio (代理:分析师评级方向)",
+            "weight": 0.2,
+            "score": 80,
+            "detail": "分析师评级1.5(1=买入,5=卖出)，非真实Put/Call数据"
+          },
+          {
+            "label": "Positive Analyst Rating",
+            "weight": 0.2,
+            "score": 90,
+            "detail": "约81%(由评级均值估算)"
+          }
+        ],
+        "risk_sub": [
+          {
+            "label": "VIX",
+            "weight": 0.45,
+            "score": 90,
+            "detail": "16.4"
+          },
+          {
+            "label": "10Y Treasury Yield",
+            "weight": 0.35,
+            "score": 70,
+            "detail": "4.45%"
+          },
+          {
+            "label": "High Yield Credit Spread (代理:Beta+市值)",
+            "weight": 0.2,
+            "score": 35,
+            "detail": "Beta=2.17, 市值$1279B，非真实信用利差数据"
+          }
+        ],
+        "macro_sub": [
+          {
+            "label": "Fed Funds Rate",
+            "weight": 0.18,
+            "score": 70,
+            "detail": "3.63%"
+          },
+          {
+            "label": "10Y Treasury Yield",
+            "weight": 0.18,
+            "score": 70,
+            "detail": "4.45%"
+          },
+          {
+            "label": "Core PCE YoY",
+            "weight": 0.1,
+            "score": 100,
+            "detail": "+0.24%"
+          },
+          {
+            "label": "Unemployment Rate",
+            "weight": 0.1,
+            "score": 90,
+            "detail": "4.3%"
+          },
+          {
+            "label": "Nonfarm Payroll Change",
+            "weight": 0.1,
+            "score": 90,
+            "detail": "+172k"
+          },
+          {
+            "label": "ISM Manufacturing PMI",
+            "weight": 0.1,
+            "score": 50,
+            "detail": "中性占位(无免费实时源，需手动更新)"
+          },
+          {
+            "label": "US Dollar Index (DXY)",
+            "weight": 0.05,
+            "score": 85,
+            "detail": "100.8"
+          },
+          {
+            "label": "WTI Oil Price",
+            "weight": 0.12,
+            "score": 90,
+            "detail": "$76.5"
+          },
+          {
+            "label": "WTI 1M % Change",
+            "weight": 0.07,
+            "score": 90,
+            "detail": "-0.08%"
+          }
+        ]
+      },
+      "commentary": "【基本面 - 评分86/100】\nMU基本面数据极具爆发力：YoY营收增长+196.3%、EPS/利润增速高达+756%，印证AI驱动HBM/DRAM超级周期带来的量价齐升。Forward PE仅9.6x、PEG 0.36，估值相对增速显著低估，Lynch式\"以合理价格买入高成长\"逻辑成立。唯一隐患在于FCF Margin仅5.0%、FCF Yield 0.2%，重资本扩产周期下自由现金流尚未充分转化，评分受限于此。\n\n【技术面 - 评分74/100】\n股价今日单日+8.70%，站上MA20与MA50，3个月相对QQQ超额收益达+170.9pp，短期动量极强。RSI(14)=59，未进入超买区间（<70），上行空间尚存；成交量比率1.19x，温和放量，符合Druckenmiller\"趋势+量能确认\"框架。负面因素是30日年化波动率高达115.7%、Beta=2.17，MA200数据缺失导致趋势复合评分仅68，长周期趋势确认尚不完整。\n\n【情绪面 - 评分88/100】\nVIX=16.4处于低位恐慌区间，市场整体风险偏好健康，有利于高Beta成长标的获取溢价。分析师评级均值1.5（接近强买入端），约81%正面评级覆盖，机构共识明确做多。情绪面无明显逆风，当前市场情绪对MU形成正向催化背书。\n\n【风险面 - 评分72/100】\nBeta=2.17意味着市场若出现3%调整，MU理论上承受约6.5%回撤，高波动特性（115.7%年化）要求严格执行止损纪律（参考位$1065.95，约-6.0%下行空间）。10Y美债收益率4.45%处于偏高区间，对高成长股估值扩张形成压制；高Beta+大市值组合在信用环境收紧时尾部风险不容忽视。半导体行业特有的库存周期反转、出口管制政策升级是本轮最大结构性风险点。\n\n【宏观影响 - 评分80/100】\n当前宏观环境中AI算力军备竞赛持续推升HBM需求，配合VIX低位、风险资产偏好回暖，MU作为AI内存核心受益标的直接吃到政策与需求双重顺风。美债利率高位横盘对其估值扩张形成轻度摩擦，但PEG 0.36的安全边际已充分吸收该压力。\n\n---\n【操作建议】\n• **综合评分：80/100 → 积极加仓**\n• **止损参考：$1065.95**（跌破则执行，无条件）\n• **仓位建议：不超过9%**（高Beta标的，单仓需严控以对冲尾部波动风险）"
+    },
+    {
+      "sym": "AVGO",
+      "name": "Broadcom Inc",
+      "sector": "Semiconductors/AI Infra",
+      "price": 411.35,
+      "change_pct": 4.7,
+      "rsi": 42.8,
+      "pe_ratio": 68.4,
+      "forward_pe": 21.2,
+      "peg_ratio": 0.75,
+      "ma5": 391.39,
+      "ma20": 413.74,
+      "ma50": 411.67,
+      "ma_cross": null,
+      "vol_ratio": 1.28,
+      "rel_strength_3m": 3.0,
+      "vol_30d_annualized": 64.7,
+      "target_price": 523.84,
+      "target_high": 650.0,
+      "target_low": 215.88,
+      "num_analysts": 45,
+      "upside": 27.3,
+      "rev_growth": 47.9,
+      "eps_growth": 85.4,
+      "gross_margin": 76.3,
+      "fcf_yield": 1.4,
+      "fcf_margin": 36.1,
+      "inst_pct": 79.9,
+      "short_ratio": 3.0,
+      "analyst_rec": 1.33,
+      "beta": 1.43,
+      "market_cap_b": 1957.0,
+      "thin_history": false,
+      "trading_days": 90,
+      "scores": {
+        "composite": 79,
+        "label": "强烈买入",
+        "action": "积极加仓",
+        "macro": 80,
+        "fundamental": 92,
+        "technical": 54,
+        "sentiment": 88,
+        "risk": 77,
+        "stop_loss": 394.9,
+        "position_pct": 9,
+        "alerts": [],
+        "fundamental_sub": [
+          {
+            "label": "Revenue Growth (YoY代理3Y CAGR)",
+            "weight": 0.2,
+            "score": 100,
+            "detail": "+47.9%"
+          },
+          {
+            "label": "Profit Growth (YoY代理3Y CAGR)",
+            "weight": 0.2,
+            "score": 100,
+            "detail": "+85.4%"
+          },
+          {
+            "label": "FCF Margin",
+            "weight": 0.1225,
+            "score": 100,
+            "detail": "36.1%"
+          },
+          {
+            "label": "Gross Margin",
+            "weight": 0.105,
+            "score": 100,
+            "detail": "76.3%"
+          },
+          {
+            "label": "EPS Growth",
+            "weight": 0.1225,
+            "score": 100,
+            "detail": "+85.4%"
+          },
+          {
+            "label": "Forward PE",
+            "weight": 0.075,
+            "score": 75,
+            "detail": "21.2x"
+          },
+          {
+            "label": "PEG Ratio",
+            "weight": 0.1,
+            "score": 100,
+            "detail": "0.75"
+          },
+          {
+            "label": "FCF Yield",
+            "weight": 0.075,
+            "score": 20,
+            "detail": "1.4%"
+          }
+        ],
+        "technical_sub": [
+          {
+            "label": "Trend Composite",
+            "weight": 0.25,
+            "score": 42,
+            "detail": "MA5/20无交叉, 站上MA20:False, MA50:False, MA200:None"
+          },
+          {
+            "label": "3M Relative Strength vs QQQ",
+            "weight": 0.25,
+            "score": 60,
+            "detail": "+3.0pp"
+          },
+          {
+            "label": "RSI(14)",
+            "weight": 0.15,
+            "score": 35,
+            "detail": "43"
+          },
+          {
+            "label": "Volume Ratio",
+            "weight": 0.15,
+            "score": 90,
+            "detail": "1.28x"
+          },
+          {
+            "label": "30D Annualised Volatility",
+            "weight": 0.1,
+            "score": 35,
+            "detail": "64.7%"
+          },
+          {
+            "label": "Beta vs QQQ/S&P",
+            "weight": 0.1,
+            "score": 65,
+            "detail": "1.43"
+          }
+        ],
+        "sentiment_sub": [
+          {
+            "label": "VIX",
+            "weight": 0.6,
+            "score": 90,
+            "detail": "16.4"
+          },
+          {
+            "label": "Equity Put/Call Ratio (代理:分析师评级方向)",
+            "weight": 0.2,
+            "score": 80,
+            "detail": "分析师评级1.3(1=买入,5=卖出)，非真实Put/Call数据"
+          },
+          {
+            "label": "Positive Analyst Rating",
+            "weight": 0.2,
+            "score": 90,
+            "detail": "约87%(由评级均值估算)"
+          }
+        ],
+        "risk_sub": [
+          {
+            "label": "VIX",
+            "weight": 0.45,
+            "score": 90,
+            "detail": "16.4"
+          },
+          {
+            "label": "10Y Treasury Yield",
+            "weight": 0.35,
+            "score": 70,
+            "detail": "4.45%"
+          },
+          {
+            "label": "High Yield Credit Spread (代理:Beta+市值)",
+            "weight": 0.2,
+            "score": 60,
+            "detail": "Beta=1.43, 市值$1957B，非真实信用利差数据"
+          }
+        ],
+        "macro_sub": [
+          {
+            "label": "Fed Funds Rate",
+            "weight": 0.18,
+            "score": 70,
+            "detail": "3.63%"
+          },
+          {
+            "label": "10Y Treasury Yield",
+            "weight": 0.18,
+            "score": 70,
+            "detail": "4.45%"
+          },
+          {
+            "label": "Core PCE YoY",
+            "weight": 0.1,
+            "score": 100,
+            "detail": "+0.24%"
+          },
+          {
+            "label": "Unemployment Rate",
+            "weight": 0.1,
+            "score": 90,
+            "detail": "4.3%"
+          },
+          {
+            "label": "Nonfarm Payroll Change",
+            "weight": 0.1,
+            "score": 90,
+            "detail": "+172k"
+          },
+          {
+            "label": "ISM Manufacturing PMI",
+            "weight": 0.1,
+            "score": 50,
+            "detail": "中性占位(无免费实时源，需手动更新)"
+          },
+          {
+            "label": "US Dollar Index (DXY)",
+            "weight": 0.05,
+            "score": 85,
+            "detail": "100.8"
+          },
+          {
+            "label": "WTI Oil Price",
+            "weight": 0.12,
+            "score": 90,
+            "detail": "$76.5"
+          },
+          {
+            "label": "WTI 1M % Change",
+            "weight": 0.07,
+            "score": 90,
+            "detail": "-0.08%"
+          }
+        ]
+      },
+      "commentary": "# AVGO — Broadcom Inc｜$411.35 (+4.70%)\n\n---\n\n【基本面 - 评分92/100】\nAVGO基本面近乎完美：3年营收CAGR达47.9%、利润CAGR高达85.4%，EPS同步扩张85.4%，VMware并购协同效应持续释放。FCF Margin 36.1%、毛利率76.3%，现金生成能力居半导体行业顶端；Forward PE 21.2x配合PEG仅0.75，在如此增速下估值极具吸引力。唯一瑕疵是FCF Yield仅1.4%（评分20），当前股价已消化大量成长溢价，需警惕增速放缓时的估值重估风险。\n\n---\n\n【技术面 - 评分54/100】\n技术面为五维中最弱一环：价格尚未收复MA20与MA50，趋势复合指标评分仅42，短期动能结构偏弱。RSI(14)=43，徘徊于超卖边缘但尚未企稳反弹确认，3个月相对QQQ超额仅+3.0pp，强度温和。今日放量（成交量比1.28x）配合+4.70%涨幅是积极信号，但需连续收于MA20之上方可确认趋势修复，当前仍属反弹验证阶段而非趋势启动。\n\n---\n\n【情绪面 - 评分88/100】\n市场情绪面整体偏多：VIX 16.4处于低恐慌区间，系统性风险溢价压制有限，为成长股提供较宽松的定价环境。分析师评级均值1.3（满分1=强力买入），约87%分析师维持正面评级，机构共识度极高，卖方覆盖密集且偏乐观。情绪面高分（88）与技术面弱势形成反差，意味着当前回调更多是筹码洗牌而非基本面恶化引发的信心崩塌。\n\n---\n\n【风险面 - 评分77/100】\n主要风险在于高Beta（1.43）与高波动率（30日年化64.7%）的双重叠加——若宏观或市场出现超预期扰动，AVGO回撤幅度将显著放大。10年期美债收益率4.45%对高增速科技股估值构成持续压力（评分70），利率若进一步上行将直接压缩PEG估值空间。信用利差代理指标（Beta+市值）评分60，系统性流动性风险可控，但$1.96T市值意味着大单进出冲击成本不可忽视，止损$394.9须严格执行。\n\n---\n\n【宏观影响 - 评分80/100】\n当前宏观环境——AI基础设施资本开支超预期、美联储降息预期温和回归——对AVGO直接利多：定制ASIC与网络芯片需求持续受益于超大规模云厂商扩张周期，宏观评分80反映整体顺风但利率高位与地缘贸易摩擦仍是不确定变量。\n\n---\n\n【操作建议】\n- **综合评分：79/100 → 积极加仓**\n- **止损参考：$394.9**（跌破则执行，约-4%回"
+    },
+    {
+      "sym": "META",
+      "name": "Meta Platforms",
+      "sector": "Digital Ads/AI",
+      "price": 577.22,
+      "change_pct": 1.7,
+      "rsi": 36.4,
+      "pe_ratio": 21.0,
+      "forward_pe": 15.9,
+      "peg_ratio": 0.83,
+      "ma5": 580.99,
+      "ma20": 599.03,
+      "ma50": 621.37,
+      "ma_cross": null,
+      "vol_ratio": 1.51,
+      "rel_strength_3m": -28.9,
+      "vol_30d_annualized": 38.0,
+      "target_price": 827.32,
+      "target_high": 1015.0,
+      "target_low": 664.46,
+      "num_analysts": 59,
+      "upside": 43.3,
+      "rev_growth": 33.1,
+      "eps_growth": 62.4,
+      "gross_margin": 81.9,
+      "fcf_yield": 1.7,
+      "fcf_margin": 11.9,
+      "inst_pct": 79.3,
+      "short_ratio": 1.9,
+      "analyst_rec": 1.31,
+      "beta": 1.23,
+      "market_cap_b": 1465.2,
+      "thin_history": false,
+      "trading_days": 90,
+      "scores": {
+        "composite": 78,
+        "label": "强烈买入",
+        "action": "积极加仓",
+        "macro": 80,
+        "fundamental": 90,
+        "technical": 50,
+        "sentiment": 88,
+        "risk": 77,
+        "stop_loss": 554.13,
+        "position_pct": 8,
+        "alerts": [],
+        "fundamental_sub": [
+          {
+            "label": "Revenue Growth (YoY代理3Y CAGR)",
+            "weight": 0.2,
+            "score": 100,
+            "detail": "+33.1%"
+          },
+          {
+            "label": "Profit Growth (YoY代理3Y CAGR)",
+            "weight": 0.2,
+            "score": 100,
+            "detail": "+62.4%"
+          },
+          {
+            "label": "FCF Margin",
+            "weight": 0.1225,
+            "score": 55,
+            "detail": "11.9%"
+          },
+          {
+            "label": "Gross Margin",
+            "weight": 0.105,
+            "score": 100,
+            "detail": "81.9%"
+          },
+          {
+            "label": "EPS Growth",
+            "weight": 0.1225,
+            "score": 100,
+            "detail": "+62.4%"
+          },
+          {
+            "label": "Forward PE",
+            "weight": 0.075,
+            "score": 95,
+            "detail": "15.9x"
+          },
+          {
+            "label": "PEG Ratio",
+            "weight": 0.1,
+            "score": 100,
+            "detail": "0.83"
+          },
+          {
+            "label": "FCF Yield",
+            "weight": 0.075,
+            "score": 50,
+            "detail": "1.7%"
+          }
+        ],
+        "technical_sub": [
+          {
+            "label": "Trend Composite",
+            "weight": 0.25,
+            "score": 42,
+            "detail": "MA5/20无交叉, 站上MA20:False, MA50:False, MA200:None"
+          },
+          {
+            "label": "3M Relative Strength vs QQQ",
+            "weight": 0.25,
+            "score": 30,
+            "detail": "-28.9pp"
+          },
+          {
+            "label": "RSI(14)",
+            "weight": 0.15,
+            "score": 35,
+            "detail": "36"
+          },
+          {
+            "label": "Volume Ratio",
+            "weight": 0.15,
+            "score": 90,
+            "detail": "1.51x"
+          },
+          {
+            "label": "30D Annualised Volatility",
+            "weight": 0.1,
+            "score": 65,
+            "detail": "38.0%"
+          },
+          {
+            "label": "Beta vs QQQ/S&P",
+            "weight": 0.1,
+            "score": 65,
+            "detail": "1.23"
+          }
+        ],
+        "sentiment_sub": [
+          {
+            "label": "VIX",
+            "weight": 0.6,
+            "score": 90,
+            "detail": "16.4"
+          },
+          {
+            "label": "Equity Put/Call Ratio (代理:分析师评级方向)",
+            "weight": 0.2,
+            "score": 80,
+            "detail": "分析师评级1.3(1=买入,5=卖出)，非真实Put/Call数据"
+          },
+          {
+            "label": "Positive Analyst Rating",
+            "weight": 0.2,
+            "score": 90,
+            "detail": "约88%(由评级均值估算)"
+          }
+        ],
+        "risk_sub": [
+          {
+            "label": "VIX",
+            "weight": 0.45,
+            "score": 90,
+            "detail": "16.4"
+          },
+          {
+            "label": "10Y Treasury Yield",
+            "weight": 0.35,
+            "score": 70,
+            "detail": "4.45%"
+          },
+          {
+            "label": "High Yield Credit Spread (代理:Beta+市值)",
+            "weight": 0.2,
+            "score": 60,
+            "detail": "Beta=1.23, 市值$1465B，非真实信用利差数据"
+          }
+        ],
+        "macro_sub": [
+          {
+            "label": "Fed Funds Rate",
+            "weight": 0.18,
+            "score": 70,
+            "detail": "3.63%"
+          },
+          {
+            "label": "10Y Treasury Yield",
+            "weight": 0.18,
+            "score": 70,
+            "detail": "4.45%"
+          },
+          {
+            "label": "Core PCE YoY",
+            "weight": 0.1,
+            "score": 100,
+            "detail": "+0.24%"
+          },
+          {
+            "label": "Unemployment Rate",
+            "weight": 0.1,
+            "score": 90,
+            "detail": "4.3%"
+          },
+          {
+            "label": "Nonfarm Payroll Change",
+            "weight": 0.1,
+            "score": 90,
+            "detail": "+172k"
+          },
+          {
+            "label": "ISM Manufacturing PMI",
+            "weight": 0.1,
+            "score": 50,
+            "detail": "中性占位(无免费实时源，需手动更新)"
+          },
+          {
+            "label": "US Dollar Index (DXY)",
+            "weight": 0.05,
+            "score": 85,
+            "detail": "100.8"
+          },
+          {
+            "label": "WTI Oil Price",
+            "weight": 0.12,
+            "score": 90,
+            "detail": "$76.5"
+          },
+          {
+            "label": "WTI 1M % Change",
+            "weight": 0.07,
+            "score": 90,
+            "detail": "-0.08%"
+          }
+        ]
+      },
+      "commentary": "# META — Meta Platforms | $577.22 (+1.70%)\n\n---\n\n【基本面 - 评分90/100】\nMETA基本面堪称标杆级：3年营收CAGR达33.1%、利润CAGR高达62.4%，EPS同步增长62.4%，印证Zuckerberg\"效率年\"战略的深层威力。毛利率81.9%、Forward PE仅15.9x、PEG仅0.83，以超高增速对应合理估值，Lynch式\"合理价格买入优质成长\"条件完全满足。唯一瑕疵在于FCF Margin仅11.9%、FCF Yield仅1.7%，提示资本支出（AI基础设施）正大量消耗自由现金流，需持续追踪CapEx兑现路径。\n\n---\n\n【技术面 - 评分50/100】\n技术面是当前最大警示：股价未站上MA20/MA50，3个月相对QQQ落后达-28.9pp，显示近期市场轮动中META受压明显。RSI(14)仅36，逼近超卖区域，短线动能疲弱；但成交量比率1.51x提示大资金并未撤离，存在积极介入迹象，或为技术底部构筑阶段。Druckenmiller框架下，趋势未确立前不宜追涨，需等待MA20重新站上或RSI反弹至45+确认方向。\n\n---\n\n【情绪面 - 评分88/100】\n市场情绪环境整体有利：VIX收于16.4，恐慌情绪退潮，系统性风险溢价显著压缩，为风险资产提供良好的持仓土壤。分析师评级均值1.3（接近满分买入），约88%机构维持正面评级，卖方共识高度一致，短期内预期差反转风险有限但上调空间仍存。综合来看，市场对META的信心锚定稳固，情绪面不构成阻力。\n\n---\n\n【风险面 - 评分77/100】\n主要风险集中于三点：Beta 1.23意味着市场若出现回调，META跌幅将系统性放大约23%；30日年化波动率38%属于中高区间，单日波动可达±2-3%，须严守止损纪律。10年期国债收益率4.45%处于高位，对科技成长估值形成持续压制；叠加AI CapEx持续扩张（2025年预算~600-650亿美元），若货币化进度不及预期，市场容忍度将快速收窄。\n\n---\n\n【宏观影响 - 评分80/100】\n当前宏观环境——VIX回落、美债收益率趋稳、风险偏好温和修复——对META的广告营收模式形成正向支撑，企业广告主预算通常在低波动、低不确定性环境中边际扩张。AI监管风险与贸易摩擦是潜在扰动项，但META以北美广告为核心收入来源，相对受关税直接冲击较小，宏观风险传导路径较间接。\n\n---\n\n【操作建议】\n- **综合评分：78/100 → 积极加仓**\n- **止损参考：$554.13**（约-4.0%，对应近期支撑位）\n- **仓位"
+    },
+    {
+      "sym": "NVDA",
+      "name": "NVIDIA Corp",
+      "sector": "Semiconductors/AI",
+      "price": 210.69,
+      "change_pct": 2.95,
+      "rsi": 49.9,
+      "pe_ratio": 32.3,
+      "forward_pe": 16.6,
+      "peg_ratio": 0.65,
+      "ma5": 208.08,
+      "ma20": 211.68,
+      "ma50": 209.12,
+      "ma_cross": null,
+      "vol_ratio": 1.37,
+      "rel_strength_3m": -7.9,
+      "vol_30d_annualized": 43.2,
+      "target_price": 298.93,
+      "target_high": 500.0,
+      "target_low": 180.0,
+      "num_analysts": 59,
+      "upside": 41.9,
+      "rev_growth": 85.2,
+      "eps_growth": 214.5,
+      "gross_margin": 74.1,
+      "fcf_yield": 0.9,
+      "fcf_margin": 18.3,
+      "inst_pct": 70.9,
+      "short_ratio": 1.7,
+      "analyst_rec": 1.29,
+      "beta": 2.2,
+      "market_cap_b": 5103.1,
+      "thin_history": false,
+      "trading_days": 90,
+      "scores": {
+        "composite": 77,
+        "label": "强烈买入",
+        "action": "积极加仓",
+        "macro": 80,
+        "fundamental": 91,
+        "technical": 50,
+        "sentiment": 88,
+        "risk": 72,
+        "stop_loss": 198.05,
+        "position_pct": 8,
+        "alerts": [],
+        "fundamental_sub": [
+          {
+            "label": "Revenue Growth (YoY代理3Y CAGR)",
+            "weight": 0.2,
+            "score": 100,
+            "detail": "+85.2%"
+          },
+          {
+            "label": "Profit Growth (YoY代理3Y CAGR)",
+            "weight": 0.2,
+            "score": 100,
+            "detail": "+214.5%"
+          },
+          {
+            "label": "FCF Margin",
+            "weight": 0.1225,
+            "score": 80,
+            "detail": "18.3%"
+          },
+          {
+            "label": "Gross Margin",
+            "weight": 0.105,
+            "score": 100,
+            "detail": "74.1%"
+          },
+          {
+            "label": "EPS Growth",
+            "weight": 0.1225,
+            "score": 100,
+            "detail": "+214.5%"
+          },
+          {
+            "label": "Forward PE",
+            "weight": 0.075,
+            "score": 95,
+            "detail": "16.6x"
+          },
+          {
+            "label": "PEG Ratio",
+            "weight": 0.1,
+            "score": 100,
+            "detail": "0.65"
+          },
+          {
+            "label": "FCF Yield",
+            "weight": 0.075,
+            "score": 20,
+            "detail": "0.9%"
+          }
+        ],
+        "technical_sub": [
+          {
+            "label": "Trend Composite",
+            "weight": 0.25,
+            "score": 42,
+            "detail": "MA5/20无交叉, 站上MA20:False, MA50:True, MA200:None"
+          },
+          {
+            "label": "3M Relative Strength vs QQQ",
+            "weight": 0.25,
+            "score": 30,
+            "detail": "-7.9pp"
+          },
+          {
+            "label": "RSI(14)",
+            "weight": 0.15,
+            "score": 75,
+            "detail": "50"
+          },
+          {
+            "label": "Volume Ratio",
+            "weight": 0.15,
+            "score": 90,
+            "detail": "1.37x"
+          },
+          {
+            "label": "30D Annualised Volatility",
+            "weight": 0.1,
+            "score": 35,
+            "detail": "43.2%"
+          },
+          {
+            "label": "Beta vs QQQ/S&P",
+            "weight": 0.1,
+            "score": 35,
+            "detail": "2.20"
+          }
+        ],
+        "sentiment_sub": [
+          {
+            "label": "VIX",
+            "weight": 0.6,
+            "score": 90,
+            "detail": "16.4"
+          },
+          {
+            "label": "Equity Put/Call Ratio (代理:分析师评级方向)",
+            "weight": 0.2,
+            "score": 80,
+            "detail": "分析师评级1.3(1=买入,5=卖出)，非真实Put/Call数据"
+          },
+          {
+            "label": "Positive Analyst Rating",
+            "weight": 0.2,
+            "score": 90,
+            "detail": "约88%(由评级均值估算)"
+          }
+        ],
+        "risk_sub": [
+          {
+            "label": "VIX",
+            "weight": 0.45,
+            "score": 90,
+            "detail": "16.4"
+          },
+          {
+            "label": "10Y Treasury Yield",
+            "weight": 0.35,
+            "score": 70,
+            "detail": "4.45%"
+          },
+          {
+            "label": "High Yield Credit Spread (代理:Beta+市值)",
+            "weight": 0.2,
+            "score": 35,
+            "detail": "Beta=2.20, 市值$5103B，非真实信用利差数据"
+          }
+        ],
+        "macro_sub": [
+          {
+            "label": "Fed Funds Rate",
+            "weight": 0.18,
+            "score": 70,
+            "detail": "3.63%"
+          },
+          {
+            "label": "10Y Treasury Yield",
+            "weight": 0.18,
+            "score": 70,
+            "detail": "4.45%"
+          },
+          {
+            "label": "Core PCE YoY",
+            "weight": 0.1,
+            "score": 100,
+            "detail": "+0.24%"
+          },
+          {
+            "label": "Unemployment Rate",
+            "weight": 0.1,
+            "score": 90,
+            "detail": "4.3%"
+          },
+          {
+            "label": "Nonfarm Payroll Change",
+            "weight": 0.1,
+            "score": 90,
+            "detail": "+172k"
+          },
+          {
+            "label": "ISM Manufacturing PMI",
+            "weight": 0.1,
+            "score": 50,
+            "detail": "中性占位(无免费实时源，需手动更新)"
+          },
+          {
+            "label": "US Dollar Index (DXY)",
+            "weight": 0.05,
+            "score": 85,
+            "detail": "100.8"
+          },
+          {
+            "label": "WTI Oil Price",
+            "weight": 0.12,
+            "score": 90,
+            "detail": "$76.5"
+          },
+          {
+            "label": "WTI 1M % Change",
+            "weight": 0.07,
+            "score": 90,
+            "detail": "-0.08%"
+          }
+        ]
+      },
+      "commentary": "## NVDA — NVIDIA Corp｜$210.69 (+2.95%)\n\n---\n\n【基本面 - 评分91/100】\nNVDA基本面几乎无可挑剔：营收YoY CAGR达+85.2%，净利润增速+214.5%，毛利率74.1%，三项指标均满分。Forward PE仅16.6x、PEG 0.65，相对于超300%的盈利增速而言估值极度低估，Lynch视角下这是典型的\"以合理价格买到卓越增长\"标的。唯一瑕疵是FCF Yield仅0.9%（评分20），大量现金被资本开支与股份回购消耗，自由现金流转化效率存在边际压力。\n\n---\n\n【技术面 - 评分50/100】\n技术面是当前NVDA最大的短期隐患：股价站上MA50但未能收复MA20，Trend Composite仅42分，说明中短期动能尚未确立。3个月相对QQQ跑输-7.9pp（评分30），显示资金在轮动中阶段性回避该股；RSI(14)=50处于中性区域，既无超买压力亦无超卖反弹驱动，量比1.37x尚属积极但无法弥补趋势的缺失。Beta=2.20叠加43.2%年化波动率，使技术面信号的任何误判代价倍增——Druckenmiller框架下，趋势未明前应控制仓位而非全力追入。\n\n---\n\n【情绪面 - 评分88/100】\n市场情绪对NVDA整体偏向乐观：VIX=16.4处于低恐慌区（评分90），宏观风险溢价压制有限，风险资产整体定价环境友好。分析师评级均值1.3（接近满分买入），约88%正面评级覆盖，机构层面的信念度维持高位，短期内情绪反转风险较低。\n\n---\n\n【风险面 - 评分72/100】\nBeta=2.20是双刃剑：市场上涨时NVDA弹性最强，但一旦宏观转向，回撤幅度将显著放大，当前止损位$198.05距现价约6%，对应高波动标的保护空间相对收窄。10年期美债收益率4.45%（评分70）仍在高位，对高成长股的估值折现率形成持续压制；信用利差代理指标评分仅35，反映市场对大市值高Beta股票系统性风险的隐性定价偏紧。综合来看，风险不来自基本面，而来自外部利率与市场结构性波动。\n\n---\n\n【宏观影响 - 评分80/100】\n当前宏观环境（评分80）对NVDA总体利好：VIX低位叠加AI基础设施投资预期持续，为NVDA数据中心业务提供需求端支撑；但4.45%的长端利率与美元走势仍是压制高估值科技股重新定价的核心变量，需持续监控美联储表态对利率路径的修正。\n\n---\n\n**【操作建议】**\n- 📊 综合评分：**77/100 → 积极加仓**\n- 🛡️ 止损参考：**$198.05**（跌破MA50支撑则执"
+    },
+    {
+      "sym": "GOOGL",
+      "name": "Alphabet Inc",
+      "sector": "Search/AI",
+      "price": 368.03,
+      "change_pct": 1.17,
+      "rsi": 42.7,
+      "pe_ratio": 28.1,
+      "forward_pe": 25.4,
+      "peg_ratio": 1.45,
+      "ma5": 366.82,
+      "ma20": 371.5,
+      "ma50": 367.19,
+      "ma_cross": null,
+      "vol_ratio": 1.36,
+      "rel_strength_3m": 0.6,
+      "vol_30d_annualized": 28.7,
+      "target_price": 432.83,
+      "target_high": 515.0,
+      "target_low": 340.0,
+      "num_analysts": 53,
+      "upside": 17.6,
+      "rev_growth": 21.8,
+      "eps_growth": 82.0,
+      "gross_margin": 60.4,
+      "fcf_yield": 0.6,
+      "fcf_margin": 6.6,
+      "inst_pct": 80.8,
+      "short_ratio": 2.8,
+      "analyst_rec": 1.44,
+      "beta": 1.24,
+      "market_cap_b": 4490.9,
+      "thin_history": false,
+      "trading_days": 90,
+      "scores": {
+        "composite": 75,
+        "label": "强烈买入",
+        "action": "积极加仓",
+        "macro": 80,
+        "fundamental": 79,
+        "technical": 57,
+        "sentiment": 88,
+        "risk": 77,
+        "stop_loss": 353.31,
+        "position_pct": 8,
+        "alerts": [],
+        "fundamental_sub": [
+          {
+            "label": "Revenue Growth (YoY代理3Y CAGR)",
+            "weight": 0.2,
+            "score": 85,
+            "detail": "+21.8%"
+          },
+          {
+            "label": "Profit Growth (YoY代理3Y CAGR)",
+            "weight": 0.2,
+            "score": 100,
+            "detail": "+82.0%"
+          },
+          {
+            "label": "FCF Margin",
+            "weight": 0.1225,
+            "score": 55,
+            "detail": "6.6%"
+          },
+          {
+            "label": "Gross Margin",
+            "weight": 0.105,
+            "score": 80,
+            "detail": "60.4%"
+          },
+          {
+            "label": "EPS Growth",
+            "weight": 0.1225,
+            "score": 100,
+            "detail": "+82.0%"
+          },
+          {
+            "label": "Forward PE",
+            "weight": 0.075,
+            "score": 75,
+            "detail": "25.4x"
+          },
+          {
+            "label": "PEG Ratio",
+            "weight": 0.1,
+            "score": 75,
+            "detail": "1.45"
+          },
+          {
+            "label": "FCF Yield",
+            "weight": 0.075,
+            "score": 20,
+            "detail": "0.6%"
+          }
+        ],
+        "technical_sub": [
+          {
+            "label": "Trend Composite",
+            "weight": 0.25,
+            "score": 42,
+            "detail": "MA5/20无交叉, 站上MA20:False, MA50:True, MA200:None"
+          },
+          {
+            "label": "3M Relative Strength vs QQQ",
+            "weight": 0.25,
+            "score": 60,
+            "detail": "+0.6pp"
+          },
+          {
+            "label": "RSI(14)",
+            "weight": 0.15,
+            "score": 35,
+            "detail": "43"
+          },
+          {
+            "label": "Volume Ratio",
+            "weight": 0.15,
+            "score": 90,
+            "detail": "1.36x"
+          },
+          {
+            "label": "30D Annualised Volatility",
+            "weight": 0.1,
+            "score": 65,
+            "detail": "28.7%"
+          },
+          {
+            "label": "Beta vs QQQ/S&P",
+            "weight": 0.1,
+            "score": 65,
+            "detail": "1.24"
+          }
+        ],
+        "sentiment_sub": [
+          {
+            "label": "VIX",
+            "weight": 0.6,
+            "score": 90,
+            "detail": "16.4"
+          },
+          {
+            "label": "Equity Put/Call Ratio (代理:分析师评级方向)",
+            "weight": 0.2,
+            "score": 80,
+            "detail": "分析师评级1.4(1=买入,5=卖出)，非真实Put/Call数据"
+          },
+          {
+            "label": "Positive Analyst Rating",
+            "weight": 0.2,
+            "score": 90,
+            "detail": "约82%(由评级均值估算)"
+          }
+        ],
+        "risk_sub": [
+          {
+            "label": "VIX",
+            "weight": 0.45,
+            "score": 90,
+            "detail": "16.4"
+          },
+          {
+            "label": "10Y Treasury Yield",
+            "weight": 0.35,
+            "score": 70,
+            "detail": "4.45%"
+          },
+          {
+            "label": "High Yield Credit Spread (代理:Beta+市值)",
+            "weight": 0.2,
+            "score": 60,
+            "detail": "Beta=1.24, 市值$4491B，非真实信用利差数据"
+          }
+        ],
+        "macro_sub": [
+          {
+            "label": "Fed Funds Rate",
+            "weight": 0.18,
+            "score": 70,
+            "detail": "3.63%"
+          },
+          {
+            "label": "10Y Treasury Yield",
+            "weight": 0.18,
+            "score": 70,
+            "detail": "4.45%"
+          },
+          {
+            "label": "Core PCE YoY",
+            "weight": 0.1,
+            "score": 100,
+            "detail": "+0.24%"
+          },
+          {
+            "label": "Unemployment Rate",
+            "weight": 0.1,
+            "score": 90,
+            "detail": "4.3%"
+          },
+          {
+            "label": "Nonfarm Payroll Change",
+            "weight": 0.1,
+            "score": 90,
+            "detail": "+172k"
+          },
+          {
+            "label": "ISM Manufacturing PMI",
+            "weight": 0.1,
+            "score": 50,
+            "detail": "中性占位(无免费实时源，需手动更新)"
+          },
+          {
+            "label": "US Dollar Index (DXY)",
+            "weight": 0.05,
+            "score": 85,
+            "detail": "100.8"
+          },
+          {
+            "label": "WTI Oil Price",
+            "weight": 0.12,
+            "score": 90,
+            "detail": "$76.5"
+          },
+          {
+            "label": "WTI 1M % Change",
+            "weight": 0.07,
+            "score": 90,
+            "detail": "-0.08%"
+          }
+        ]
+      },
+      "commentary": "【基本面 - 评分79/100】\nAlphabet三年营收CAGR达21.8%，利润与EPS增速均高达82.0%，盈利扩张力度显著，反映云计算与AI广告业务的规模效应加速释放。Forward PE 25.4x配合PEG 1.45，估值相对增速仍具合理性，不构成明显溢价。唯一拖累项为FCF Margin仅6.6%、FCF Yield低至0.6%，自由现金流转化效率偏弱，需关注资本开支（AI基础设施）对现金流的持续侵蚀。\n\n【技术面 - 评分57/100】\n当前价格$368.03站上MA50但未能收复MA20，趋势结构偏弱，动能尚未形成明确向上合力。RSI(14)仅43，处于中性偏空区域，短期买盘力度不足。相对QQQ 3个月超额收益仅+0.6pp，领涨优势微弱，但成交量比率1.36x提示资金有温和介入迹象，整体技术面属于修复途中、非强势突破。\n\n【情绪面 - 评分88/100】\nVIX报16.4，市场恐慌情绪处于低位，整体风险偏好环境对成长股友好。分析师评级均值1.4（满分5制），约82%的覆盖分析师维持买入，机构共识高度一致，情绪面为本次分析中得分最高维度。当前情绪基础扎实，短期无明显逆风。\n\n【风险面 - 评分77/100】\nBeta 1.24意味着GOOGL对大盘波动的放大系数较高，一旦指数回调，回撤幅度将超过市场平均。10年期美债收益率4.45%构成对高估值科技股的持续压制，贴现率敏感性不可忽视。30日年化波动率28.7%偏高，叠加反垄断监管、AI竞争格局动态变化，需严守$353.31止损线（约-4%下行空间）以控制尾部风险。\n\n【宏观影响 - 评分80/100】\n当前宏观环境以AI基础设施扩张预期与稳健企业盈利为主线，直接利好Alphabet云端与搜索广告核心收入驱动逻辑；美债收益率处于高位但阶段性稳定，未形成新一轮杀估值压力，宏观背景整体支撑GOOGL维持强势基本面溢价。\n\n---\n\n**【操作建议】**\n- 综合评分：**75/100 → 积极加仓**\n- 止损参考：**$353.31**（跌破MA50关键支撑）\n- 仓位建议：**不超过8%**"
+    },
+    {
+      "sym": "GEV",
+      "name": "GE Vernova",
+      "sector": "Power/Grid Equipment",
+      "price": 1109.73,
+      "change_pct": 5.8,
+      "rsi": 68.2,
+      "pe_ratio": 32.5,
+      "forward_pe": 45.3,
+      "peg_ratio": 1.92,
+      "ma5": 1011.94,
+      "ma20": 980.29,
+      "ma50": 1021.82,
+      "ma_cross": "golden",
+      "vol_ratio": 1.44,
+      "rel_strength_3m": -5.8,
+      "vol_30d_annualized": 52.7,
+      "target_price": 1211.72,
+      "target_high": 1424.0,
+      "target_low": 836.0,
+      "num_analysts": 34,
+      "upside": 9.2,
+      "rev_growth": 16.3,
+      "eps_growth": 1816.5,
+      "gross_margin": 20.3,
+      "fcf_yield": 3.1,
+      "fcf_margin": 23.7,
+      "inst_pct": 79.6,
+      "short_ratio": 3.8,
+      "analyst_rec": 1.58,
+      "beta": 1.04,
+      "market_cap_b": 298.2,
+      "thin_history": false,
+      "trading_days": 90,
+      "scores": {
+        "composite": 75,
+        "label": "强烈买入",
+        "action": "积极加仓",
+        "macro": 80,
+        "fundamental": 70,
+        "technical": 68,
+        "sentiment": 84,
+        "risk": 81,
+        "stop_loss": 1065.34,
+        "position_pct": 8,
+        "alerts": [],
+        "fundamental_sub": [
+          {
+            "label": "Revenue Growth (YoY代理3Y CAGR)",
+            "weight": 0.2,
+            "score": 65,
+            "detail": "+16.3%"
+          },
+          {
+            "label": "Profit Growth (YoY代理3Y CAGR)",
+            "weight": 0.2,
+            "score": 100,
+            "detail": "+1816.5%"
+          },
+          {
+            "label": "FCF Margin",
+            "weight": 0.1225,
+            "score": 80,
+            "detail": "23.7%"
+          },
+          {
+            "label": "Gross Margin",
+            "weight": 0.105,
+            "score": 25,
+            "detail": "20.3%"
+          },
+          {
+            "label": "EPS Growth",
+            "weight": 0.1225,
+            "score": 100,
+            "detail": "+1816.5%"
+          },
+          {
+            "label": "Forward PE",
+            "weight": 0.075,
+            "score": 25,
+            "detail": "45.3x"
+          },
+          {
+            "label": "PEG Ratio",
+            "weight": 0.1,
+            "score": 50,
+            "detail": "1.92"
+          },
+          {
+            "label": "FCF Yield",
+            "weight": 0.075,
+            "score": 75,
+            "detail": "3.1%"
+          }
+        ],
+        "technical_sub": [
+          {
+            "label": "Trend Composite",
+            "weight": 0.25,
+            "score": 76,
+            "detail": "MA5/20金叉, 站上MA20:True, MA50:True, MA200:None"
+          },
+          {
+            "label": "3M Relative Strength vs QQQ",
+            "weight": 0.25,
+            "score": 30,
+            "detail": "-5.8pp"
+          },
+          {
+            "label": "RSI(14)",
+            "weight": 0.15,
+            "score": 100,
+            "detail": "68"
+          },
+          {
+            "label": "Volume Ratio",
+            "weight": 0.15,
+            "score": 90,
+            "detail": "1.44x"
+          },
+          {
+            "label": "30D Annualised Volatility",
+            "weight": 0.1,
+            "score": 35,
+            "detail": "52.7%"
+          },
+          {
+            "label": "Beta vs QQQ/S&P",
+            "weight": 0.1,
+            "score": 90,
+            "detail": "1.04"
+          }
+        ],
+        "sentiment_sub": [
+          {
+            "label": "VIX",
+            "weight": 0.6,
+            "score": 90,
+            "detail": "16.4"
+          },
+          {
+            "label": "Equity Put/Call Ratio (代理:分析师评级方向)",
+            "weight": 0.2,
+            "score": 80,
+            "detail": "分析师评级1.6(1=买入,5=卖出)，非真实Put/Call数据"
+          },
+          {
+            "label": "Positive Analyst Rating",
+            "weight": 0.2,
+            "score": 70,
+            "detail": "约77%(由评级均值估算)"
+          }
+        ],
+        "risk_sub": [
+          {
+            "label": "VIX",
+            "weight": 0.45,
+            "score": 90,
+            "detail": "16.4"
+          },
+          {
+            "label": "10Y Treasury Yield",
+            "weight": 0.35,
+            "score": 70,
+            "detail": "4.45%"
+          },
+          {
+            "label": "High Yield Credit Spread (代理:Beta+市值)",
+            "weight": 0.2,
+            "score": 80,
+            "detail": "Beta=1.04, 市值$298B，非真实信用利差数据"
+          }
+        ],
+        "macro_sub": [
+          {
+            "label": "Fed Funds Rate",
+            "weight": 0.18,
+            "score": 70,
+            "detail": "3.63%"
+          },
+          {
+            "label": "10Y Treasury Yield",
+            "weight": 0.18,
+            "score": 70,
+            "detail": "4.45%"
+          },
+          {
+            "label": "Core PCE YoY",
+            "weight": 0.1,
+            "score": 100,
+            "detail": "+0.24%"
+          },
+          {
+            "label": "Unemployment Rate",
+            "weight": 0.1,
+            "score": 90,
+            "detail": "4.3%"
+          },
+          {
+            "label": "Nonfarm Payroll Change",
+            "weight": 0.1,
+            "score": 90,
+            "detail": "+172k"
+          },
+          {
+            "label": "ISM Manufacturing PMI",
+            "weight": 0.1,
+            "score": 50,
+            "detail": "中性占位(无免费实时源，需手动更新)"
+          },
+          {
+            "label": "US Dollar Index (DXY)",
+            "weight": 0.05,
+            "score": 85,
+            "detail": "100.8"
+          },
+          {
+            "label": "WTI Oil Price",
+            "weight": 0.12,
+            "score": 90,
+            "detail": "$76.5"
+          },
+          {
+            "label": "WTI 1M % Change",
+            "weight": 0.07,
+            "score": 90,
+            "detail": "-0.08%"
+          }
+        ]
+      },
+      "commentary": "【基本面 - 评分70/100】\nGEV利润弹性极为突出，EPS与净利润YoY均录得+1816.5%的爆发式增长，FCF Margin达23.7%，显示盈利质量从GE剥离后已实质性重建。然而毛利率仅20.3%（评分25）反映重工业低毛利结构性制约，Forward PE 45.3x与PEG 1.92亦表明市场已将高速成长充分定价，安全边际有限。整体而言，成长逻辑扎实但估值溢价需以持续订单执行来消化。\n\n【技术面 - 评分68/100】\n价格MA5/20形成金叉，且站稳MA20与MA50，当日+5.80%放量（成交量为均量1.44倍）配合RSI 68接近超买临界，短期动能强劲。但3个月相对QQQ强度为-5.8pp，表明在科技主导的近期上涨周期中GEV存在明显跑输，相对吸引力需进一步验证。30日年化波动率52.7%偏高，Beta 1.04与大盘联动紧密，单日大涨后需警惕回踩压力。\n\n【情绪面 - 评分84/100】\nVIX报16.4，市场整体处于低恐慌状态，风险偏好环境有利于高Beta工业成长股。分析师评级均值1.6（接近强烈买入端），约77%正面覆盖率，机构认可度高，卖方情绪形成正向催化。当前情绪环境是GEV今日大涨的重要助推因素之一，短期做多阻力较小。\n\n【风险面 - 评分81/100】\n整体风险环境偏友好：VIX处低位，10年期美债收益率4.45%虽具压制性但未出现急升，Beta 1.04意味着GEV与大盘风险敞口基本同步，市值$298B流动性充足。主要风险在于52.7%的年化波动率偏高，一旦市场情绪逆转，单日双向波幅可能超过5%；Forward PE 45.3x使其对利率上行高度敏感，若国债收益率重返4.6%上方将面临估值压缩。止损位$1065.34（约-4%）提供合理缓冲。\n\n【宏观影响 - 评分80/100】\n当前宏观环境中电力基础设施投资（含AI数据中心电力需求）持续升温，叠加美国制造业回流政策支撑，GEV作为燃气轮机与电网设备核心供应商直接受益于这一结构性订单周期。低VIX+风险偏好回升的市场背景进一步放大了资金对工业成长标的的配置意愿，宏观顺风明显。\n\n---\n\n【操作建议】\n• **综合评分：75/100 → 积极加仓**\n• **止损参考：$1065.34**（跌破MA20区域触发）\n• **仓位建议：不超过8%**\n> 核心逻辑：利润重建+电力基建超级周期；主要风险：高估值+高波动率，严守止损纪律。"
+    },
+    {
+      "sym": "MSFT",
+      "name": "Microsoft Corp",
+      "sector": "Cloud/AI",
+      "price": 379.4,
+      "change_pct": 0.13,
+      "rsi": 18.6,
+      "pe_ratio": 22.6,
+      "forward_pe": 19.6,
+      "peg_ratio": 1.17,
+      "ma5": 388.53,
+      "ma20": 413.15,
+      "ma50": 412.44,
+      "ma_cross": null,
+      "vol_ratio": 1.53,
+      "rel_strength_3m": -23.5,
+      "vol_30d_annualized": 34.0,
+      "target_price": 561.39,
+      "target_high": 870.0,
+      "target_low": 400.0,
+      "num_analysts": 55,
+      "upside": 48.0,
+      "rev_growth": 18.3,
+      "eps_growth": 23.4,
+      "gross_margin": 68.3,
+      "fcf_yield": 1.3,
+      "fcf_margin": 11.6,
+      "inst_pct": 75.8,
+      "short_ratio": 2.4,
+      "analyst_rec": 1.34,
+      "beta": 1.1,
+      "market_cap_b": 2818.3,
+      "thin_history": false,
+      "trading_days": 90,
+      "scores": {
+        "composite": 72,
+        "label": "买入",
+        "action": "买入",
+        "macro": 80,
+        "fundamental": 71,
+        "technical": 52,
+        "sentiment": 88,
+        "risk": 81,
+        "stop_loss": 364.22,
+        "position_pct": 7,
+        "alerts": [],
+        "fundamental_sub": [
+          {
+            "label": "Revenue Growth (YoY代理3Y CAGR)",
+            "weight": 0.2,
+            "score": 65,
+            "detail": "+18.3%"
+          },
+          {
+            "label": "Profit Growth (YoY代理3Y CAGR)",
+            "weight": 0.2,
+            "score": 85,
+            "detail": "+23.4%"
+          },
+          {
+            "label": "FCF Margin",
+            "weight": 0.1225,
+            "score": 55,
+            "detail": "11.6%"
+          },
+          {
+            "label": "Gross Margin",
+            "weight": 0.105,
+            "score": 80,
+            "detail": "68.3%"
+          },
+          {
+            "label": "EPS Growth",
+            "weight": 0.1225,
+            "score": 80,
+            "detail": "+23.4%"
+          },
+          {
+            "label": "Forward PE",
+            "weight": 0.075,
+            "score": 95,
+            "detail": "19.6x"
+          },
+          {
+            "label": "PEG Ratio",
+            "weight": 0.1,
+            "score": 75,
+            "detail": "1.17"
+          },
+          {
+            "label": "FCF Yield",
+            "weight": 0.075,
+            "score": 20,
+            "detail": "1.3%"
+          }
+        ],
+        "technical_sub": [
+          {
+            "label": "Trend Composite",
+            "weight": 0.25,
+            "score": 42,
+            "detail": "MA5/20无交叉, 站上MA20:False, MA50:False, MA200:None"
+          },
+          {
+            "label": "3M Relative Strength vs QQQ",
+            "weight": 0.25,
+            "score": 30,
+            "detail": "-23.5pp"
+          },
+          {
+            "label": "RSI(14)",
+            "weight": 0.15,
+            "score": 35,
+            "detail": "19"
+          },
+          {
+            "label": "Volume Ratio",
+            "weight": 0.15,
+            "score": 90,
+            "detail": "1.53x"
+          },
+          {
+            "label": "30D Annualised Volatility",
+            "weight": 0.1,
+            "score": 65,
+            "detail": "34.0%"
+          },
+          {
+            "label": "Beta vs QQQ/S&P",
+            "weight": 0.1,
+            "score": 90,
+            "detail": "1.10"
+          }
+        ],
+        "sentiment_sub": [
+          {
+            "label": "VIX",
+            "weight": 0.6,
+            "score": 90,
+            "detail": "16.4"
+          },
+          {
+            "label": "Equity Put/Call Ratio (代理:分析师评级方向)",
+            "weight": 0.2,
+            "score": 80,
+            "detail": "分析师评级1.3(1=买入,5=卖出)，非真实Put/Call数据"
+          },
+          {
+            "label": "Positive Analyst Rating",
+            "weight": 0.2,
+            "score": 90,
+            "detail": "约86%(由评级均值估算)"
+          }
+        ],
+        "risk_sub": [
+          {
+            "label": "VIX",
+            "weight": 0.45,
+            "score": 90,
+            "detail": "16.4"
+          },
+          {
+            "label": "10Y Treasury Yield",
+            "weight": 0.35,
+            "score": 70,
+            "detail": "4.45%"
+          },
+          {
+            "label": "High Yield Credit Spread (代理:Beta+市值)",
+            "weight": 0.2,
+            "score": 80,
+            "detail": "Beta=1.10, 市值$2818B，非真实信用利差数据"
+          }
+        ],
+        "macro_sub": [
+          {
+            "label": "Fed Funds Rate",
+            "weight": 0.18,
+            "score": 70,
+            "detail": "3.63%"
+          },
+          {
+            "label": "10Y Treasury Yield",
+            "weight": 0.18,
+            "score": 70,
+            "detail": "4.45%"
+          },
+          {
+            "label": "Core PCE YoY",
+            "weight": 0.1,
+            "score": 100,
+            "detail": "+0.24%"
+          },
+          {
+            "label": "Unemployment Rate",
+            "weight": 0.1,
+            "score": 90,
+            "detail": "4.3%"
+          },
+          {
+            "label": "Nonfarm Payroll Change",
+            "weight": 0.1,
+            "score": 90,
+            "detail": "+172k"
+          },
+          {
+            "label": "ISM Manufacturing PMI",
+            "weight": 0.1,
+            "score": 50,
+            "detail": "中性占位(无免费实时源，需手动更新)"
+          },
+          {
+            "label": "US Dollar Index (DXY)",
+            "weight": 0.05,
+            "score": 85,
+            "detail": "100.8"
+          },
+          {
+            "label": "WTI Oil Price",
+            "weight": 0.12,
+            "score": 90,
+            "detail": "$76.5"
+          },
+          {
+            "label": "WTI 1M % Change",
+            "weight": 0.07,
+            "score": 90,
+            "detail": "-0.08%"
+          }
+        ]
+      },
+      "commentary": "【基本面 - 评分71/100】\nMSFT基本面质地扎实，利润与EPS增速均达23.4%（3Y CAGR），明显领先营收增速18.3%，体现出色的运营杠杆效应。Forward PE 19.6x搭配PEG 1.17，估值相对成长性而言具备吸引力，处于合理偏低区间。唯一短板在于FCF Margin仅11.6%、FCF Yield低至1.3%，提示当期自由现金流转化效率偏弱，值得关注资本开支压力。\n\n【技术面 - 评分52/100】\n技术面为当前最大隐忧：RSI(14)仅19，极度超卖但同时意味着趋势性抛压尚未企稳，股价未站上MA20与MA50，趋势结构全面偏空。3个月相对QQQ强度落后23.5pp，显示近期资金明显回避MSFT，短线动能缺失。成交量比率1.53x为唯一亮点，高换手可能预示下跌末段，但需等待价格确认反转信号。\n\n【情绪面 - 评分88/100】\nVIX 16.4处于低位，市场整体恐慌情绪受控，系统性风险溢价压力有限，为个股提供相对友好的宏观情绪底色。分析师评级均值1.3（趋近强烈买入），约86%分析师维持正面评级，机构共识度高，卖方信心未受短期股价回调动摇。情绪面形成显著支撑，具备逢低布局的情绪基础。\n\n【风险面 - 评分81/100】\nBeta 1.10意味着MSFT与大盘基本同步波动，极端行情下放大效应可控，配合2.82万亿市值的流动性缓冲，系统性风险较低。30日年化波动率34.0%处于中等水平，10Y美债收益率4.45%对高估值科技股仍构成一定折现压力，需防范利率预期再度上行对估值端的压制。核心风险点在于技术面破位后的惯性下行，止损位$364.22需严格执行。\n\n【宏观影响 - 评分80/100】\n当前宏观评分80分，低VIX与相对稳定的信用环境有利于大型科技股估值修复，AI资本开支主题持续为MSFT云与智能业务提供叙事支撑。若宏观数据维持软着陆预期，利率曲线趋稳将直接改善MSFT的DCF估值逻辑，形成中期正向催化。\n\n---\n\n**【操作建议】**\n- 综合评分：**72/100 → 买入**\n- 止损参考：**$364.22**（跌破则信号失效）\n- 仓位建议：**不超过7%**\n- 注意：技术面仍处弱势，建议分批建仓，待价格站上MA20确认后加仓，规避超卖反弹夭折风险。"
+    },
+    {
+      "sym": "NEE",
+      "name": "NextEra Energy",
+      "sector": "Utilities/Renewables",
+      "price": 86.75,
+      "change_pct": 1.19,
+      "rsi": 51.3,
+      "pe_ratio": 22.0,
+      "forward_pe": 19.7,
+      "peg_ratio": 1.91,
+      "ma5": 86.16,
+      "ma20": 85.83,
+      "ma50": 90.04,
+      "ma_cross": "golden",
+      "vol_ratio": 1.59,
+      "rel_strength_3m": -30.1,
+      "vol_30d_annualized": 26.2,
+      "target_price": 98.9,
+      "target_high": 112.0,
+      "target_low": 55.0,
+      "num_analysts": 20,
+      "upside": 14.0,
+      "rev_growth": 7.3,
+      "eps_growth": 160.0,
+      "gross_margin": 61.4,
+      "fcf_yield": -10.2,
+      "fcf_margin": -66.2,
+      "inst_pct": 87.0,
+      "short_ratio": 0.0,
+      "analyst_rec": 1.95,
+      "beta": 0.67,
+      "market_cap_b": 180.9,
+      "thin_history": false,
+      "trading_days": 90,
+      "scores": {
+        "composite": 71,
+        "label": "买入",
+        "action": "买入",
+        "macro": 80,
+        "fundamental": 63,
+        "technical": 64,
+        "sentiment": 77,
+        "risk": 81,
+        "stop_loss": 83.28,
+        "position_pct": 6,
+        "alerts": [],
+        "fundamental_sub": [
+          {
+            "label": "Revenue Growth (YoY代理3Y CAGR)",
+            "weight": 0.2,
+            "score": 30,
+            "detail": "+7.3%"
+          },
+          {
+            "label": "Profit Growth (YoY代理3Y CAGR)",
+            "weight": 0.2,
+            "score": 100,
+            "detail": "+160.0%"
+          },
+          {
+            "label": "FCF Margin",
+            "weight": 0.1225,
+            "score": 25,
+            "detail": "-66.2%"
+          },
+          {
+            "label": "Gross Margin",
+            "weight": 0.105,
+            "score": 80,
+            "detail": "61.4%"
+          },
+          {
+            "label": "EPS Growth",
+            "weight": 0.1225,
+            "score": 100,
+            "detail": "+160.0%"
+          },
+          {
+            "label": "Forward PE",
+            "weight": 0.075,
+            "score": 95,
+            "detail": "19.7x"
+          },
+          {
+            "label": "PEG Ratio",
+            "weight": 0.1,
+            "score": 50,
+            "detail": "1.91"
+          },
+          {
+            "label": "FCF Yield",
+            "weight": 0.075,
+            "score": 20,
+            "detail": "-10.2%"
+          }
+        ],
+        "technical_sub": [
+          {
+            "label": "Trend Composite",
+            "weight": 0.25,
+            "score": 63,
+            "detail": "MA5/20金叉, 站上MA20:True, MA50:False, MA200:None"
+          },
+          {
+            "label": "3M Relative Strength vs QQQ",
+            "weight": 0.25,
+            "score": 30,
+            "detail": "-30.1pp"
+          },
+          {
+            "label": "RSI(14)",
+            "weight": 0.15,
+            "score": 75,
+            "detail": "51"
+          },
+          {
+            "label": "Volume Ratio",
+            "weight": 0.15,
+            "score": 90,
+            "detail": "1.59x"
+          },
+          {
+            "label": "30D Annualised Volatility",
+            "weight": 0.1,
+            "score": 65,
+            "detail": "26.2%"
+          },
+          {
+            "label": "Beta vs QQQ/S&P",
+            "weight": 0.1,
+            "score": 90,
+            "detail": "0.67"
+          }
+        ],
+        "sentiment_sub": [
+          {
+            "label": "VIX",
+            "weight": 0.6,
+            "score": 90,
+            "detail": "16.4"
+          },
+          {
+            "label": "Equity Put/Call Ratio (代理:分析师评级方向)",
+            "weight": 0.2,
+            "score": 65,
+            "detail": "分析师评级1.9(1=买入,5=卖出)，非真实Put/Call数据"
+          },
+          {
+            "label": "Positive Analyst Rating",
+            "weight": 0.2,
+            "score": 50,
+            "detail": "约62%(由评级均值估算)"
+          }
+        ],
+        "risk_sub": [
+          {
+            "label": "VIX",
+            "weight": 0.45,
+            "score": 90,
+            "detail": "16.4"
+          },
+          {
+            "label": "10Y Treasury Yield",
+            "weight": 0.35,
+            "score": 70,
+            "detail": "4.45%"
+          },
+          {
+            "label": "High Yield Credit Spread (代理:Beta+市值)",
+            "weight": 0.2,
+            "score": 80,
+            "detail": "Beta=0.67, 市值$181B，非真实信用利差数据"
+          }
+        ],
+        "macro_sub": [
+          {
+            "label": "Fed Funds Rate",
+            "weight": 0.18,
+            "score": 70,
+            "detail": "3.63%"
+          },
+          {
+            "label": "10Y Treasury Yield",
+            "weight": 0.18,
+            "score": 70,
+            "detail": "4.45%"
+          },
+          {
+            "label": "Core PCE YoY",
+            "weight": 0.1,
+            "score": 100,
+            "detail": "+0.24%"
+          },
+          {
+            "label": "Unemployment Rate",
+            "weight": 0.1,
+            "score": 90,
+            "detail": "4.3%"
+          },
+          {
+            "label": "Nonfarm Payroll Change",
+            "weight": 0.1,
+            "score": 90,
+            "detail": "+172k"
+          },
+          {
+            "label": "ISM Manufacturing PMI",
+            "weight": 0.1,
+            "score": 50,
+            "detail": "中性占位(无免费实时源，需手动更新)"
+          },
+          {
+            "label": "US Dollar Index (DXY)",
+            "weight": 0.05,
+            "score": 85,
+            "detail": "100.8"
+          },
+          {
+            "label": "WTI Oil Price",
+            "weight": 0.12,
+            "score": 90,
+            "detail": "$76.5"
+          },
+          {
+            "label": "WTI 1M % Change",
+            "weight": 0.07,
+            "score": 90,
+            "detail": "-0.08%"
+          }
+        ]
+      },
+      "commentary": "**NEE — NextEra Energy｜$86.75 (+1.19%)**\n\n---\n\n【基本面 - 评分63/100】\nEPS与利润增速均达+160% YoY，推动评分满分，显示近期盈利质量实质性改善；Forward PE 19.7x估值合理（评分95），但PEG 1.91（评分50）表明成长溢价仍存在。核心隐忧在于FCF Margin -66.2%、FCF Yield -10.2%，大规模资本开支持续压制自由现金流，营收增速+7.3%也偏保守，基本面整体呈\"盈利强、现金弱\"的公用事业扩张期特征。\n\n【技术面 - 评分64/100】\nMA5/20已形成金叉且价格站上MA20，短期动能确认，成交量比率1.59x显示资金有效跟进；但股价仍位于MA50之下，且3个月相对QQQ强弱落后30.1个百分点，说明反弹力度相对大盘偏弱。RSI(14)=51处于中性区间，无超买压力，低Beta(0.67)为防御属性提供支撑，但趋势尚未完全修复至中期均线之上。\n\n【情绪面 - 评分77/100】\nVIX 16.4处于低恐慌区间（评分90），市场整体风险偏好稳定，有利于公用事业防御板块维持估值支撑。分析师评级均值1.9（偏向买入），约62%正面评级，情绪基础稳健但并非强力买入共识，市场对NEE新能源资本开支回报周期仍存分歧。\n\n【风险面 - 评分81/100】\nBeta 0.67配合$181B市值，系统性风险低，回撤缓冲能力强；30日年化波动率26.2%属中等水平，对公用事业而言偏高，反映能源转型期资本结构不确定性。10Y美债收益率4.45%是核心风险变量——NEE高资本开支依赖债务融资，利率若进一步上行将直接压缩再融资空间并拖累DCF估值。\n\n【宏观影响 - 评分80/100】\n当前宏观环境下利率预期趋于稳定、风险偏好改善，对NEE的高久期公用事业估值形成正面支撑；清洁能源政策尾风与电网现代化需求持续，为其可再生能源管线提供长期订单确定性，宏观背景整体利多。\n\n---\n\n**【操作建议】**\n- 综合评分：**71/100 → 买入**\n- 止损参考：**$83.28**（约-4.0%，对应近期技术支撑下沿）\n- 仓位建议：**不超过6%**\n- 关注点：FCF持续负值为主要基本面压力，建议待股价有效突破MA50后加仓确认。"
+    },
+    {
+      "sym": "NOW",
+      "name": "ServiceNow",
+      "sector": "Enterprise Software",
+      "price": 95.04,
+      "change_pct": -0.46,
+      "rsi": 26.6,
+      "pe_ratio": 56.6,
+      "forward_pe": 18.9,
+      "peg_ratio": 0.92,
+      "ma5": 99.63,
+      "ma20": 108.93,
+      "ma50": 99.24,
+      "ma_cross": null,
+      "vol_ratio": 1.11,
+      "rel_strength_3m": -33.8,
+      "vol_30d_annualized": 80.9,
+      "target_price": 141.98,
+      "target_high": 236.0,
+      "target_low": 85.0,
+      "num_analysts": 44,
+      "upside": 49.4,
+      "rev_growth": 22.1,
+      "eps_growth": 2.3,
+      "gross_margin": 76.6,
+      "fcf_yield": 5.2,
+      "fcf_margin": 36.6,
+      "inst_pct": 88.5,
+      "short_ratio": 2.0,
+      "analyst_rec": 1.44,
+      "beta": 0.93,
+      "market_cap_b": 98.0,
+      "thin_history": false,
+      "trading_days": 90,
+      "scores": {
+        "composite": 71,
+        "label": "买入",
+        "action": "买入",
+        "macro": 80,
+        "fundamental": 73,
+        "technical": 46,
+        "sentiment": 88,
+        "risk": 77,
+        "stop_loss": 91.24,
+        "position_pct": 6,
+        "alerts": [],
+        "fundamental_sub": [
+          {
+            "label": "Revenue Growth (YoY代理3Y CAGR)",
+            "weight": 0.2,
+            "score": 85,
+            "detail": "+22.1%"
+          },
+          {
+            "label": "Profit Growth (YoY代理3Y CAGR)",
+            "weight": 0.2,
+            "score": 30,
+            "detail": "+2.3%"
+          },
+          {
+            "label": "FCF Margin",
+            "weight": 0.1225,
+            "score": 100,
+            "detail": "36.6%"
+          },
+          {
+            "label": "Gross Margin",
+            "weight": 0.105,
+            "score": 100,
+            "detail": "76.6%"
+          },
+          {
+            "label": "EPS Growth",
+            "weight": 0.1225,
+            "score": 25,
+            "detail": "+2.3%"
+          },
+          {
+            "label": "Forward PE",
+            "weight": 0.075,
+            "score": 95,
+            "detail": "18.9x"
+          },
+          {
+            "label": "PEG Ratio",
+            "weight": 0.1,
+            "score": 100,
+            "detail": "0.92"
+          },
+          {
+            "label": "FCF Yield",
+            "weight": 0.075,
+            "score": 100,
+            "detail": "5.2%"
+          }
+        ],
+        "technical_sub": [
+          {
+            "label": "Trend Composite",
+            "weight": 0.25,
+            "score": 42,
+            "detail": "MA5/20无交叉, 站上MA20:False, MA50:False, MA200:None"
+          },
+          {
+            "label": "3M Relative Strength vs QQQ",
+            "weight": 0.25,
+            "score": 30,
+            "detail": "-33.8pp"
+          },
+          {
+            "label": "RSI(14)",
+            "weight": 0.15,
+            "score": 35,
+            "detail": "27"
+          },
+          {
+            "label": "Volume Ratio",
+            "weight": 0.15,
+            "score": 70,
+            "detail": "1.11x"
+          },
+          {
+            "label": "30D Annualised Volatility",
+            "weight": 0.1,
+            "score": 35,
+            "detail": "80.9%"
+          },
+          {
+            "label": "Beta vs QQQ/S&P",
+            "weight": 0.1,
+            "score": 90,
+            "detail": "0.93"
+          }
+        ],
+        "sentiment_sub": [
+          {
+            "label": "VIX",
+            "weight": 0.6,
+            "score": 90,
+            "detail": "16.4"
+          },
+          {
+            "label": "Equity Put/Call Ratio (代理:分析师评级方向)",
+            "weight": 0.2,
+            "score": 80,
+            "detail": "分析师评级1.4(1=买入,5=卖出)，非真实Put/Call数据"
+          },
+          {
+            "label": "Positive Analyst Rating",
+            "weight": 0.2,
+            "score": 90,
+            "detail": "约82%(由评级均值估算)"
+          }
+        ],
+        "risk_sub": [
+          {
+            "label": "VIX",
+            "weight": 0.45,
+            "score": 90,
+            "detail": "16.4"
+          },
+          {
+            "label": "10Y Treasury Yield",
+            "weight": 0.35,
+            "score": 70,
+            "detail": "4.45%"
+          },
+          {
+            "label": "High Yield Credit Spread (代理:Beta+市值)",
+            "weight": 0.2,
+            "score": 60,
+            "detail": "Beta=0.93, 市值$98B，非真实信用利差数据"
+          }
+        ],
+        "macro_sub": [
+          {
+            "label": "Fed Funds Rate",
+            "weight": 0.18,
+            "score": 70,
+            "detail": "3.63%"
+          },
+          {
+            "label": "10Y Treasury Yield",
+            "weight": 0.18,
+            "score": 70,
+            "detail": "4.45%"
+          },
+          {
+            "label": "Core PCE YoY",
+            "weight": 0.1,
+            "score": 100,
+            "detail": "+0.24%"
+          },
+          {
+            "label": "Unemployment Rate",
+            "weight": 0.1,
+            "score": 90,
+            "detail": "4.3%"
+          },
+          {
+            "label": "Nonfarm Payroll Change",
+            "weight": 0.1,
+            "score": 90,
+            "detail": "+172k"
+          },
+          {
+            "label": "ISM Manufacturing PMI",
+            "weight": 0.1,
+            "score": 50,
+            "detail": "中性占位(无免费实时源，需手动更新)"
+          },
+          {
+            "label": "US Dollar Index (DXY)",
+            "weight": 0.05,
+            "score": 85,
+            "detail": "100.8"
+          },
+          {
+            "label": "WTI Oil Price",
+            "weight": 0.12,
+            "score": 90,
+            "detail": "$76.5"
+          },
+          {
+            "label": "WTI 1M % Change",
+            "weight": 0.07,
+            "score": 90,
+            "detail": "-0.08%"
+          }
+        ]
+      },
+      "commentary": "【基本面 - 评分73/100】\nServiceNow收入3年CAGR达22.1%，展示企业工作流自动化平台的强劲需求黏性；FCF Margin高达36.6%，Gross Margin 76.6%，盈利质量一流，FCF Yield 5.2%叠加PEG仅0.92，估值性价比突出。但当期EPS与利润增速仅+2.3%，警示期间费用扩张或会计处理压缩了账面盈利，需关注下季度净利率修复节奏。\n\n【技术面 - 评分46/100】\n价格未能站稳MA20与MA50，趋势结构全面走弱；RSI(14)低至27，已进入超卖区间，短期反弹概率上升但尚无确认信号。过去3个月相对QQQ落后33.8个百分点，相对强弱严重受损，动量层面短期仍不支持激进追多，需等待成交量配合的企稳形态。\n\n【情绪面 - 评分88/100】\nVIX收于16.4，市场整体恐慌情绪已显著消退，宏观情绪环境对成长股形成支撑；分析师评级均值1.4（近满分买入），约82%机构维持正面评级，卖方共识高度一致。当前低价格与高情绪之间的背离，暗示机构在等待技术面企稳后有较强补仓意愿。\n\n【风险面 - 评分77/100】\n30日年化波动率高达80.9%，短期价格震荡风险不可低估，需严守止损纪律；Beta 0.93接近市场中性，系统性风险敞口可控，但10年期美债收益率4.45%对高估值科技股仍构成持续压制。市值980亿美元提供一定流动性保障，但在高波动环境下仓位管理优先级应高于进场时机判断。\n\n【宏观影响 - 评分80/100】\n当前宏观环境VIX已回落至低恐慌区间，配合美联储政策预期边际趋稳，有利于估值压缩放缓，为NOW这类高FCF、高毛利的企业软件龙头提供喘息空间；但4.45%的长端利率仍使贴现率处于历史偏高水平，AI基础设施支出预期的持续强化是NOW中期最重要的催化剂变量。\n\n---\n\n**【操作建议】**\n- **综合评分：71/100 → 买入**\n- **止损参考：$91.24**（当前价$95.04下方约4%）\n- **仓位建议：不超过6%**\n- **战术提示：** RSI超卖但技术面尚无企稳确认，建议分批建仓——首仓3%，待价格收复MA20或出现放量阳线后补仓至上限。"
+    },
+    {
+      "sym": "CEG",
+      "name": "Constellation Energy",
+      "sector": "Nuclear/Power Generation",
+      "price": 274.06,
+      "change_pct": 2.58,
+      "rsi": 42.8,
+      "pe_ratio": 23.8,
+      "forward_pe": 20.2,
+      "peg_ratio": 3.74,
+      "ma5": 265.07,
+      "ma20": 269.29,
+      "ma50": 284.2,
+      "ma_cross": null,
+      "vol_ratio": 1.62,
+      "rel_strength_3m": -35.5,
+      "vol_30d_annualized": 51.4,
+      "target_price": 360.0,
+      "target_high": 441.0,
+      "target_low": 296.0,
+      "num_analysts": 21,
+      "upside": 31.4,
+      "rev_growth": 63.8,
+      "eps_growth": 1091.0,
+      "gross_margin": 23.3,
+      "fcf_yield": -4.6,
+      "fcf_margin": -15.0,
+      "inst_pct": 83.0,
+      "short_ratio": 3.5,
+      "analyst_rec": 1.52,
+      "beta": 1.09,
+      "market_cap_b": 97.9,
+      "thin_history": false,
+      "trading_days": 90,
+      "scores": {
+        "composite": 70,
+        "label": "买入",
+        "action": "买入",
+        "macro": 80,
+        "fundamental": 67,
+        "technical": 52,
+        "sentiment": 84,
+        "risk": 77,
+        "stop_loss": 263.1,
+        "position_pct": 6,
+        "alerts": [],
+        "fundamental_sub": [
+          {
+            "label": "Revenue Growth (YoY代理3Y CAGR)",
+            "weight": 0.2,
+            "score": 100,
+            "detail": "+63.8%"
+          },
+          {
+            "label": "Profit Growth (YoY代理3Y CAGR)",
+            "weight": 0.2,
+            "score": 100,
+            "detail": "+1091.0%"
+          },
+          {
+            "label": "FCF Margin",
+            "weight": 0.1225,
+            "score": 25,
+            "detail": "-15.0%"
+          },
+          {
+            "label": "Gross Margin",
+            "weight": 0.105,
+            "score": 25,
+            "detail": "23.3%"
+          },
+          {
+            "label": "EPS Growth",
+            "weight": 0.1225,
+            "score": 100,
+            "detail": "+1091.0%"
+          },
+          {
+            "label": "Forward PE",
+            "weight": 0.075,
+            "score": 75,
+            "detail": "20.2x"
+          },
+          {
+            "label": "PEG Ratio",
+            "weight": 0.1,
+            "score": 20,
+            "detail": "3.74"
+          },
+          {
+            "label": "FCF Yield",
+            "weight": 0.075,
+            "score": 20,
+            "detail": "-4.6%"
+          }
+        ],
+        "technical_sub": [
+          {
+            "label": "Trend Composite",
+            "weight": 0.25,
+            "score": 55,
+            "detail": "MA5/20无交叉, 站上MA20:True, MA50:False, MA200:None"
+          },
+          {
+            "label": "3M Relative Strength vs QQQ",
+            "weight": 0.25,
+            "score": 30,
+            "detail": "-35.5pp"
+          },
+          {
+            "label": "RSI(14)",
+            "weight": 0.15,
+            "score": 35,
+            "detail": "43"
+          },
+          {
+            "label": "Volume Ratio",
+            "weight": 0.15,
+            "score": 90,
+            "detail": "1.62x"
+          },
+          {
+            "label": "30D Annualised Volatility",
+            "weight": 0.1,
+            "score": 35,
+            "detail": "51.4%"
+          },
+          {
+            "label": "Beta vs QQQ/S&P",
+            "weight": 0.1,
+            "score": 90,
+            "detail": "1.09"
+          }
+        ],
+        "sentiment_sub": [
+          {
+            "label": "VIX",
+            "weight": 0.6,
+            "score": 90,
+            "detail": "16.4"
+          },
+          {
+            "label": "Equity Put/Call Ratio (代理:分析师评级方向)",
+            "weight": 0.2,
+            "score": 80,
+            "detail": "分析师评级1.5(1=买入,5=卖出)，非真实Put/Call数据"
+          },
+          {
+            "label": "Positive Analyst Rating",
+            "weight": 0.2,
+            "score": 70,
+            "detail": "约79%(由评级均值估算)"
+          }
+        ],
+        "risk_sub": [
+          {
+            "label": "VIX",
+            "weight": 0.45,
+            "score": 90,
+            "detail": "16.4"
+          },
+          {
+            "label": "10Y Treasury Yield",
+            "weight": 0.35,
+            "score": 70,
+            "detail": "4.45%"
+          },
+          {
+            "label": "High Yield Credit Spread (代理:Beta+市值)",
+            "weight": 0.2,
+            "score": 60,
+            "detail": "Beta=1.09, 市值$98B，非真实信用利差数据"
+          }
+        ],
+        "macro_sub": [
+          {
+            "label": "Fed Funds Rate",
+            "weight": 0.18,
+            "score": 70,
+            "detail": "3.63%"
+          },
+          {
+            "label": "10Y Treasury Yield",
+            "weight": 0.18,
+            "score": 70,
+            "detail": "4.45%"
+          },
+          {
+            "label": "Core PCE YoY",
+            "weight": 0.1,
+            "score": 100,
+            "detail": "+0.24%"
+          },
+          {
+            "label": "Unemployment Rate",
+            "weight": 0.1,
+            "score": 90,
+            "detail": "4.3%"
+          },
+          {
+            "label": "Nonfarm Payroll Change",
+            "weight": 0.1,
+            "score": 90,
+            "detail": "+172k"
+          },
+          {
+            "label": "ISM Manufacturing PMI",
+            "weight": 0.1,
+            "score": 50,
+            "detail": "中性占位(无免费实时源，需手动更新)"
+          },
+          {
+            "label": "US Dollar Index (DXY)",
+            "weight": 0.05,
+            "score": 85,
+            "detail": "100.8"
+          },
+          {
+            "label": "WTI Oil Price",
+            "weight": 0.12,
+            "score": 90,
+            "detail": "$76.5"
+          },
+          {
+            "label": "WTI 1M % Change",
+            "weight": 0.07,
+            "score": 90,
+            "detail": "-0.08%"
+          }
+        ]
+      },
+      "commentary": "# CEG — Constellation Energy｜$274.06 (+2.58%)\n\n---\n\n【基本面 - 评分67/100】\nCEG营收同比增速+63.8%、净利润及EPS均暴增+1091%，盈利弹性极为突出，主要受益于核电合约重定价与AI数据中心电力需求爆发。Forward PE 20.2x估值尚属合理，但PEG高达3.74，提示当前增速溢价已充分反映；更需警惕的是FCF Margin为-15.0%、FCF Yield -4.6%，自由现金流持续为负显示资本开支压力沉重，利润质量存在隐患。\n\n---\n\n【技术面 - 评分52/100】\n股价站上MA20但仍在MA50下方，趋势结构偏弱，无金叉信号确认；RSI(14)仅43，动能接近超卖边缘但尚未形成反弹共振。过去3个月相对QQQ跑输达-35.5pp，相对强弱垫底，显示资金近期持续回避；量比1.62x是少数积极信号，今日放量反弹或为短期超跌修复，需观察能否收复MA50。\n\n---\n\n【情绪面 - 评分84/100】\nVIX 16.4处于低恐慌区间，整体市场情绪稳定，为风险资产提供友好底色。分析师评级均值1.5（接近满分买入），约79%分析师持正面评级，机构对CEG核电长期逻辑高度认可；但需注意在股价近期大幅回调背景下，分析师共识偏多可能存在滞后性，情绪面对下行风险的保护有限。\n\n---\n\n【风险面 - 评分77/100】\nBeta 1.09意味着CEG波动幅度与大盘高度同步，而30日年化波动率高达51.4%，股价单日大幅震荡风险不容忽视。10年期美债收益率4.45%构成持续压制，资本密集型核电扩容项目在高利率环境下融资成本抬升；核能监管政策变动、长期电力购买协议（PPA）定价风险以及负FCF下的再融资需求，是三大核心尾部风险。\n\n---\n\n【宏观影响 - 评分80/100】\n当前宏观环境中美贸易摩擦缓和、风险情绪回暖，有利于高Beta的电力基础设施股短期估值修复；AI数据中心用电需求持续攀升的宏观叙事为CEG核电资产提供长期定价支撑，80分的宏观评分是综合得分的重要压舱石。\n\n---\n\n**【操作建议】**\n- 📊 **综合评分**: 70/100 → **买入**\n- 🛑 **止损参考**: $263.1（跌破则离场）\n- 📐 **仓位建议**: 不超过 **6%**\n> 注：FCF持续为负是核心隐患，建议分批建仓，待MA50收复后再加码。"
+    },
+    {
+      "sym": "SMCI",
+      "name": "Super Micro Computer",
+      "sector": "AI Servers/Hardware",
+      "price": 30.66,
+      "change_pct": 10.37,
+      "rsi": 30.8,
+      "pe_ratio": 16.1,
+      "forward_pe": 9.7,
+      "peg_ratio": 0.91,
+      "ma5": 29.79,
+      "ma20": 37.98,
+      "ma50": 32.81,
+      "ma_cross": null,
+      "vol_ratio": 0.98,
+      "rel_strength_3m": 1.5,
+      "vol_30d_annualized": 126.1,
+      "target_price": 37.25,
+      "target_high": 58.0,
+      "target_low": 15.0,
+      "num_analysts": 16,
+      "upside": 21.5,
+      "rev_growth": 122.7,
+      "eps_growth": 326.0,
+      "gross_margin": 8.4,
+      "fcf_yield": -37.6,
+      "fcf_margin": -22.1,
+      "inst_pct": 62.5,
+      "short_ratio": 1.7,
+      "analyst_rec": 2.84,
+      "beta": 1.87,
+      "market_cap_b": 19.8,
+      "thin_history": false,
+      "trading_days": 90,
+      "scores": {
+        "composite": 70,
+        "label": "买入",
+        "action": "买入",
+        "macro": 80,
+        "fundamental": 77,
+        "technical": 45,
+        "sentiment": 68,
+        "risk": 72,
+        "stop_loss": 28.82,
+        "position_pct": 6,
+        "alerts": [],
+        "fundamental_sub": [
+          {
+            "label": "Revenue Growth (YoY代理3Y CAGR)",
+            "weight": 0.2,
+            "score": 100,
+            "detail": "+122.7%"
+          },
+          {
+            "label": "Profit Growth (YoY代理3Y CAGR)",
+            "weight": 0.2,
+            "score": 100,
+            "detail": "+326.0%"
+          },
+          {
+            "label": "FCF Margin",
+            "weight": 0.1225,
+            "score": 25,
+            "detail": "-22.1%"
+          },
+          {
+            "label": "Gross Margin",
+            "weight": 0.105,
+            "score": 25,
+            "detail": "8.4%"
+          },
+          {
+            "label": "EPS Growth",
+            "weight": 0.1225,
+            "score": 100,
+            "detail": "+326.0%"
+          },
+          {
+            "label": "Forward PE",
+            "weight": 0.075,
+            "score": 95,
+            "detail": "9.7x"
+          },
+          {
+            "label": "PEG Ratio",
+            "weight": 0.1,
+            "score": 100,
+            "detail": "0.91"
+          },
+          {
+            "label": "FCF Yield",
+            "weight": 0.075,
+            "score": 20,
+            "detail": "-37.6%"
+          }
+        ],
+        "technical_sub": [
+          {
+            "label": "Trend Composite",
+            "weight": 0.25,
+            "score": 42,
+            "detail": "MA5/20无交叉, 站上MA20:False, MA50:False, MA200:None"
+          },
+          {
+            "label": "3M Relative Strength vs QQQ",
+            "weight": 0.25,
+            "score": 60,
+            "detail": "+1.5pp"
+          },
+          {
+            "label": "RSI(14)",
+            "weight": 0.15,
+            "score": 35,
+            "detail": "31"
+          },
+          {
+            "label": "Volume Ratio",
+            "weight": 0.15,
+            "score": 50,
+            "detail": "0.98x"
+          },
+          {
+            "label": "30D Annualised Volatility",
+            "weight": 0.1,
+            "score": 35,
+            "detail": "126.1%"
+          },
+          {
+            "label": "Beta vs QQQ/S&P",
+            "weight": 0.1,
+            "score": 35,
+            "detail": "1.87"
+          }
+        ],
+        "sentiment_sub": [
+          {
+            "label": "VIX",
+            "weight": 0.6,
+            "score": 90,
+            "detail": "16.4"
+          },
+          {
+            "label": "Equity Put/Call Ratio (代理:分析师评级方向)",
+            "weight": 0.2,
+            "score": 45,
+            "detail": "分析师评级2.8(1=买入,5=卖出)，非真实Put/Call数据"
+          },
+          {
+            "label": "Positive Analyst Rating",
+            "weight": 0.2,
+            "score": 25,
+            "detail": "约26%(由评级均值估算)"
+          }
+        ],
+        "risk_sub": [
+          {
+            "label": "VIX",
+            "weight": 0.45,
+            "score": 90,
+            "detail": "16.4"
+          },
+          {
+            "label": "10Y Treasury Yield",
+            "weight": 0.35,
+            "score": 70,
+            "detail": "4.45%"
+          },
+          {
+            "label": "High Yield Credit Spread (代理:Beta+市值)",
+            "weight": 0.2,
+            "score": 35,
+            "detail": "Beta=1.87, 市值$20B，非真实信用利差数据"
+          }
+        ],
+        "macro_sub": [
+          {
+            "label": "Fed Funds Rate",
+            "weight": 0.18,
+            "score": 70,
+            "detail": "3.63%"
+          },
+          {
+            "label": "10Y Treasury Yield",
+            "weight": 0.18,
+            "score": 70,
+            "detail": "4.45%"
+          },
+          {
+            "label": "Core PCE YoY",
+            "weight": 0.1,
+            "score": 100,
+            "detail": "+0.24%"
+          },
+          {
+            "label": "Unemployment Rate",
+            "weight": 0.1,
+            "score": 90,
+            "detail": "4.3%"
+          },
+          {
+            "label": "Nonfarm Payroll Change",
+            "weight": 0.1,
+            "score": 90,
+            "detail": "+172k"
+          },
+          {
+            "label": "ISM Manufacturing PMI",
+            "weight": 0.1,
+            "score": 50,
+            "detail": "中性占位(无免费实时源，需手动更新)"
+          },
+          {
+            "label": "US Dollar Index (DXY)",
+            "weight": 0.05,
+            "score": 85,
+            "detail": "100.8"
+          },
+          {
+            "label": "WTI Oil Price",
+            "weight": 0.12,
+            "score": 90,
+            "detail": "$76.5"
+          },
+          {
+            "label": "WTI 1M % Change",
+            "weight": 0.07,
+            "score": 90,
+            "detail": "-0.08%"
+          }
+        ]
+      },
+      "commentary": "【基本面 - 评分77/100】\nSMCI营收同比增长122.7%、净利润与EPS同比爆增326%，增速在AI服务器赛道中居于顶位；Forward PE仅9.7x、PEG仅0.91，估值相对成长性极度低估，具备明显的\"Lynch式隐藏价值\"特征。然而毛利率仅8.4%、FCF Margin达-22.1%、FCF Yield为-37.6%，揭示公司在高速扩张期大量垫付资金于库存与产能，现金流质量是当前基本面的核心隐患。\n\n【技术面 - 评分45/100】\n价格尚未收复MA20与MA50，趋势综合信号偏弱，今日+10.37%的大幅反弹更多属于超卖修复而非趋势反转；RSI(14)仅31，处于技术超卖区间边缘，短线反弹动能存在但可持续性存疑。相对QQQ的3个月超额收益仅+1.5pp，相对强弱优势不显著，30日年化波动率高达126%，单日大幅波动属于常态而非异动。\n\n【情绪面 - 评分68/100】\nVIX报16.4，整体市场情绪处于低恐慌区间，宏观情绪背景对权益资产偏友好；但SMCI个股层面分析师评级均值2.8（中性偏保守），积极评级占比仅约26%，市场对其财务透明度及会计问题的担忧尚未消散，卖方信心整体维持谨慎。\n\n【风险面 - 评分72/100】\nBeta达1.87，SMCI对大盘波动的放大系数接近2倍，在市场情绪切换时净值回撤速度远超基准；30日年化波动率126%意味着理论日波动区间约±7.9%，今日涨幅在正常波动带之内。主要个股风险集中于：财务报告延迟提交及潜在审计问题、高库存带来的资产减值敞口，以及AI服务器需求周期性放缓的预期压力。\n\n【宏观影响 - 评分80/100】\n当前宏观环境下美联储降息预期边际回暖、AI资本开支周期仍处上行阶段，直接利好SMCI作为GPU服务器核心组装商的订单能见度；美债10年期收益率4.45%对高Beta、低现金流股票的估值折现仍构成结构性压制，但强劲的AI需求叙事阶段性覆盖了利率压力。\n\n---\n\n**【操作建议】**\n- 综合评分：**70/100 → 买入**\n- 止损参考：**$28.82**（当前价下跌约6%，对应近期支撑区间）\n- 仓位建议：**不超过6%**（高波动率+现金流负值+审计风险三重叠加，仓位需严格受控）"
+    },
+    {
+      "sym": "ADBE",
+      "name": "Adobe Inc",
+      "sector": "Software/Creative Cloud",
+      "price": 195.16,
+      "change_pct": -0.57,
+      "rsi": 19.4,
+      "pe_ratio": 11.2,
+      "forward_pe": 7.1,
+      "peg_ratio": 0.53,
+      "ma5": 201.83,
+      "ma20": 235.73,
+      "ma50": 241.66,
+      "ma_cross": null,
+      "vol_ratio": 1.97,
+      "rel_strength_3m": -43.7,
+      "vol_30d_annualized": 51.8,
+      "target_price": 282.27,
+      "target_high": 460.0,
+      "target_low": 190.0,
+      "num_analysts": 32,
+      "upside": 44.6,
+      "rev_growth": 12.7,
+      "eps_growth": 7.9,
+      "gross_margin": 89.4,
+      "fcf_yield": 11.9,
+      "fcf_margin": 36.6,
+      "inst_pct": 88.2,
+      "short_ratio": 4.1,
+      "analyst_rec": 2.63,
+      "beta": 1.4,
+      "market_cap_b": 77.6,
+      "thin_history": false,
+      "trading_days": 90,
+      "scores": {
+        "composite": 69,
+        "label": "买入",
+        "action": "买入",
+        "macro": 80,
+        "fundamental": 73,
+        "technical": 47,
+        "sentiment": 68,
+        "risk": 77,
+        "stop_loss": 187.35,
+        "position_pct": 6,
+        "alerts": [],
+        "fundamental_sub": [
+          {
+            "label": "Revenue Growth (YoY代理3Y CAGR)",
+            "weight": 0.2,
+            "score": 65,
+            "detail": "+12.7%"
+          },
+          {
+            "label": "Profit Growth (YoY代理3Y CAGR)",
+            "weight": 0.2,
+            "score": 30,
+            "detail": "+7.9%"
+          },
+          {
+            "label": "FCF Margin",
+            "weight": 0.1225,
+            "score": 100,
+            "detail": "36.6%"
+          },
+          {
+            "label": "Gross Margin",
+            "weight": 0.105,
+            "score": 100,
+            "detail": "89.4%"
+          },
+          {
+            "label": "EPS Growth",
+            "weight": 0.1225,
+            "score": 55,
+            "detail": "+7.9%"
+          },
+          {
+            "label": "Forward PE",
+            "weight": 0.075,
+            "score": 95,
+            "detail": "7.1x"
+          },
+          {
+            "label": "PEG Ratio",
+            "weight": 0.1,
+            "score": 100,
+            "detail": "0.53"
+          },
+          {
+            "label": "FCF Yield",
+            "weight": 0.075,
+            "score": 100,
+            "detail": "11.9%"
+          }
+        ],
+        "technical_sub": [
+          {
+            "label": "Trend Composite",
+            "weight": 0.25,
+            "score": 42,
+            "detail": "MA5/20无交叉, 站上MA20:False, MA50:False, MA200:None"
+          },
+          {
+            "label": "3M Relative Strength vs QQQ",
+            "weight": 0.25,
+            "score": 30,
+            "detail": "-43.7pp"
+          },
+          {
+            "label": "RSI(14)",
+            "weight": 0.15,
+            "score": 35,
+            "detail": "19"
+          },
+          {
+            "label": "Volume Ratio",
+            "weight": 0.15,
+            "score": 90,
+            "detail": "1.97x"
+          },
+          {
+            "label": "30D Annualised Volatility",
+            "weight": 0.1,
+            "score": 35,
+            "detail": "51.8%"
+          },
+          {
+            "label": "Beta vs QQQ/S&P",
+            "weight": 0.1,
+            "score": 65,
+            "detail": "1.40"
+          }
+        ],
+        "sentiment_sub": [
+          {
+            "label": "VIX",
+            "weight": 0.6,
+            "score": 90,
+            "detail": "16.4"
+          },
+          {
+            "label": "Equity Put/Call Ratio (代理:分析师评级方向)",
+            "weight": 0.2,
+            "score": 45,
+            "detail": "分析师评级2.6(1=买入,5=卖出)，非真实Put/Call数据"
+          },
+          {
+            "label": "Positive Analyst Rating",
+            "weight": 0.2,
+            "score": 25,
+            "detail": "约35%(由评级均值估算)"
+          }
+        ],
+        "risk_sub": [
+          {
+            "label": "VIX",
+            "weight": 0.45,
+            "score": 90,
+            "detail": "16.4"
+          },
+          {
+            "label": "10Y Treasury Yield",
+            "weight": 0.35,
+            "score": 70,
+            "detail": "4.45%"
+          },
+          {
+            "label": "High Yield Credit Spread (代理:Beta+市值)",
+            "weight": 0.2,
+            "score": 60,
+            "detail": "Beta=1.40, 市值$78B，非真实信用利差数据"
+          }
+        ],
+        "macro_sub": [
+          {
+            "label": "Fed Funds Rate",
+            "weight": 0.18,
+            "score": 70,
+            "detail": "3.63%"
+          },
+          {
+            "label": "10Y Treasury Yield",
+            "weight": 0.18,
+            "score": 70,
+            "detail": "4.45%"
+          },
+          {
+            "label": "Core PCE YoY",
+            "weight": 0.1,
+            "score": 100,
+            "detail": "+0.24%"
+          },
+          {
+            "label": "Unemployment Rate",
+            "weight": 0.1,
+            "score": 90,
+            "detail": "4.3%"
+          },
+          {
+            "label": "Nonfarm Payroll Change",
+            "weight": 0.1,
+            "score": 90,
+            "detail": "+172k"
+          },
+          {
+            "label": "ISM Manufacturing PMI",
+            "weight": 0.1,
+            "score": 50,
+            "detail": "中性占位(无免费实时源，需手动更新)"
+          },
+          {
+            "label": "US Dollar Index (DXY)",
+            "weight": 0.05,
+            "score": 85,
+            "detail": "100.8"
+          },
+          {
+            "label": "WTI Oil Price",
+            "weight": 0.12,
+            "score": 90,
+            "detail": "$76.5"
+          },
+          {
+            "label": "WTI 1M % Change",
+            "weight": 0.07,
+            "score": 90,
+            "detail": "-0.08%"
+          }
+        ]
+      },
+      "commentary": "# ADBE — Adobe Inc｜$195.16 (-0.57%)\n\n---\n\n【基本面 - 评分73/100】\nForward PE仅7.1x、PEG 0.53，估值极度低估信号明确，FCF Margin 36.6%与毛利率89.4%双双满分，印证商业模式护城河深厚。但营收3Y CAGR +12.7%尚可，利润与EPS增速仅+7.9%——AI竞争压力（Canva、Figma替代叙事）正在压制盈利杠杆，增长成色是核心隐患，需跟踪下季度ARR加速信号。\n\n---\n\n【技术面 - 评分47/100】\n价格未能站稳MA20/MA50，趋势综合信号偏弱，相对QQQ近3个月落后高达-43.7pp，显示资金大规模轮出创意软件板块。RSI(14)仅19，极度超卖区域，短期存在技术性反弹概率，但量比1.97x放大在下跌背景下更多代表恐慌出货而非接盘意愿，超卖≠底部确认。\n\n---\n\n【情绪面 - 评分68/100】\nVIX 16.4处于低恐慌区间，宏观情绪基底稳定，对市场整体构成正面支撑。但ADBE个股层面情绪明显分化——分析师评级均值2.6偏中性，正面评级占比仅约35%，机构信心相较科技同行显著偏低，市场对Adobe能否在AI重构设计工具赛道中守住定价权仍存疑虑。\n\n---\n\n【风险面 - 评分77/100】\n宏观风险环境相对温和（VIX 16.4、10Y利率4.45%在可控区间），系统性风险有限。但ADBE自身Beta达1.40，30日年化波动率51.8%，一旦大盘调整将放大跌幅；叠加当前技术面趋势破位，$195水平下方缺乏强支撑，止损$187.35对应约4%下行空间，需严格执行。\n\n---\n\n【宏观影响 - 评分80/100】\n宏观评分80分反映当前利率预期企稳、信用市场未见压力的有利背景，对高FCF收益率（11.9%）的成熟科技股具有相对估值支撑意义。但美联储降息路径不确定性及美元走强压制成长股重估空间，ADBE需依靠自身AI商业化落地催化剂而非宏观β来实现估值修复。\n\n---\n\n**【操作建议】**\n- 📊 综合评分：**69/100 → 买入**\n- 🛑 止损参考：**$187.35**\n- 📐 仓位建议：**不超过6%**\n- ⚠️ 附注：技术面破位+极度超卖并存，建议分批建仓，待RSI回升至30以上或价格重新站稳MA20后加仓确认，避免接\"飞刀\"。"
+    },
+    {
+      "sym": "MRVL",
+      "name": "Marvell Technology",
+      "sector": "Semiconductors",
+      "price": 310.58,
+      "change_pct": 7.27,
+      "rsi": 65.2,
+      "pe_ratio": 106.4,
+      "forward_pe": 50.3,
+      "peg_ratio": 1.76,
+      "ma5": 293.47,
+      "ma20": 257.6,
+      "ma50": 197.94,
+      "ma_cross": null,
+      "vol_ratio": 3.55,
+      "rel_strength_3m": 189.6,
+      "vol_30d_annualized": 137.7,
+      "target_price": 238.75,
+      "target_high": 385.0,
+      "target_low": 110.0,
+      "num_analysts": 41,
+      "upside": -23.1,
+      "rev_growth": 27.6,
+      "eps_growth": -80.4,
+      "gross_margin": 51.5,
+      "fcf_yield": 0.8,
+      "fcf_margin": 26.0,
+      "inst_pct": 85.6,
+      "short_ratio": 1.3,
+      "analyst_rec": 1.45,
+      "beta": 2.28,
+      "market_cap_b": 271.7,
+      "thin_history": false,
+      "trading_days": 90,
+      "scores": {
+        "composite": 68,
+        "label": "买入",
+        "action": "买入",
+        "macro": 80,
+        "fundamental": 55,
+        "technical": 68,
+        "sentiment": 88,
+        "risk": 72,
+        "stop_loss": 291.95,
+        "position_pct": 5,
+        "alerts": [],
+        "fundamental_sub": [
+          {
+            "label": "Revenue Growth (YoY代理3Y CAGR)",
+            "weight": 0.2,
+            "score": 85,
+            "detail": "+27.6%"
+          },
+          {
+            "label": "Profit Growth (YoY代理3Y CAGR)",
+            "weight": 0.2,
+            "score": 30,
+            "detail": "-80.4%"
+          },
+          {
+            "label": "FCF Margin",
+            "weight": 0.1225,
+            "score": 100,
+            "detail": "26.0%"
+          },
+          {
+            "label": "Gross Margin",
+            "weight": 0.105,
+            "score": 80,
+            "detail": "51.5%"
+          },
+          {
+            "label": "EPS Growth",
+            "weight": 0.1225,
+            "score": 25,
+            "detail": "-80.4%"
+          },
+          {
+            "label": "Forward PE",
+            "weight": 0.075,
+            "score": 25,
+            "detail": "50.3x"
+          },
+          {
+            "label": "PEG Ratio",
+            "weight": 0.1,
+            "score": 50,
+            "detail": "1.76"
+          },
+          {
+            "label": "FCF Yield",
+            "weight": 0.075,
+            "score": 20,
+            "detail": "0.8%"
+          }
+        ],
+        "technical_sub": [
+          {
+            "label": "Trend Composite",
+            "weight": 0.25,
+            "score": 68,
+            "detail": "MA5/20无交叉, 站上MA20:True, MA50:True, MA200:None"
+          },
+          {
+            "label": "3M Relative Strength vs QQQ",
+            "weight": 0.25,
+            "score": 100,
+            "detail": "+189.6pp"
+          },
+          {
+            "label": "RSI(14)",
+            "weight": 0.15,
+            "score": 100,
+            "detail": "65"
+          },
+          {
+            "label": "Volume Ratio",
+            "weight": 0.15,
+            "score": 30,
+            "detail": "3.55x"
+          },
+          {
+            "label": "30D Annualised Volatility",
+            "weight": 0.1,
+            "score": 35,
+            "detail": "137.7%"
+          },
+          {
+            "label": "Beta vs QQQ/S&P",
+            "weight": 0.1,
+            "score": 35,
+            "detail": "2.28"
+          }
+        ],
+        "sentiment_sub": [
+          {
+            "label": "VIX",
+            "weight": 0.6,
+            "score": 90,
+            "detail": "16.4"
+          },
+          {
+            "label": "Equity Put/Call Ratio (代理:分析师评级方向)",
+            "weight": 0.2,
+            "score": 80,
+            "detail": "分析师评级1.4(1=买入,5=卖出)，非真实Put/Call数据"
+          },
+          {
+            "label": "Positive Analyst Rating",
+            "weight": 0.2,
+            "score": 90,
+            "detail": "约82%(由评级均值估算)"
+          }
+        ],
+        "risk_sub": [
+          {
+            "label": "VIX",
+            "weight": 0.45,
+            "score": 90,
+            "detail": "16.4"
+          },
+          {
+            "label": "10Y Treasury Yield",
+            "weight": 0.35,
+            "score": 70,
+            "detail": "4.45%"
+          },
+          {
+            "label": "High Yield Credit Spread (代理:Beta+市值)",
+            "weight": 0.2,
+            "score": 35,
+            "detail": "Beta=2.28, 市值$272B，非真实信用利差数据"
+          }
+        ],
+        "macro_sub": [
+          {
+            "label": "Fed Funds Rate",
+            "weight": 0.18,
+            "score": 70,
+            "detail": "3.63%"
+          },
+          {
+            "label": "10Y Treasury Yield",
+            "weight": 0.18,
+            "score": 70,
+            "detail": "4.45%"
+          },
+          {
+            "label": "Core PCE YoY",
+            "weight": 0.1,
+            "score": 100,
+            "detail": "+0.24%"
+          },
+          {
+            "label": "Unemployment Rate",
+            "weight": 0.1,
+            "score": 90,
+            "detail": "4.3%"
+          },
+          {
+            "label": "Nonfarm Payroll Change",
+            "weight": 0.1,
+            "score": 90,
+            "detail": "+172k"
+          },
+          {
+            "label": "ISM Manufacturing PMI",
+            "weight": 0.1,
+            "score": 50,
+            "detail": "中性占位(无免费实时源，需手动更新)"
+          },
+          {
+            "label": "US Dollar Index (DXY)",
+            "weight": 0.05,
+            "score": 85,
+            "detail": "100.8"
+          },
+          {
+            "label": "WTI Oil Price",
+            "weight": 0.12,
+            "score": 90,
+            "detail": "$76.5"
+          },
+          {
+            "label": "WTI 1M % Change",
+            "weight": 0.07,
+            "score": 90,
+            "detail": "-0.08%"
+          }
+        ]
+      },
+      "commentary": "**MRVL — Marvell Technology｜$310.58 (+7.27%)**\n\n---\n\n【基本面 - 评分55/100】\n营收3年CAGR达27.6%，AI定制芯片（ASIC）与数据中心业务驱动强劲，但净利润及EPS同比骤降80.4%，主要源于高额摊销与重组成本压制GAAP盈利。Forward PE 50.3x、FCF Yield仅0.8%，估值溢价明显，市场以成长股逻辑定价，但PEG 1.76与26%的FCF Margin表明自由现金流质量尚可，盈利兑现节奏是核心观察点。\n\n【技术面 - 评分68/100】\n股价站上MA20与MA50，3个月相对QQQ超额收益高达+189.6pp，短期动能极为强劲；RSI(14)处于65，未触及超买阈值，仍有上行空间。但30日年化波动率137.7%、Beta 2.28，成交量比率3.55x偏高后可能出现换手消化，追高需关注回调缓冲区间。\n\n【情绪面 - 评分88/100】\nVIX报16.4，市场整体恐慌情绪低位，风险偏好处于扩张状态，为高Beta成长股提供顺风环境。分析师评级均值1.4（接近强烈买入），约82%持正面评级，机构共识高度集中，短期情绪面对MRVL形成显著支撑。\n\n【风险面 - 评分72/100】\nBeta 2.28意味着市场若出现3-5%调整，MRVL可能承受6-11%的放大回撤，叠加137.7%的年化波动率，持仓波动容忍度要求极高。10年期美债收益率4.45%仍对高估值成长股构成估值压力，一旦AI资本支出叙事降温或客户集中度（亚马逊、谷歌）风险浮现，杀估值速度将非常快。\n\n【宏观影响 - 评分80/100】\n当前宏观背景下AI基础设施投资周期持续，美联储降息预期边际回暖压低折现率，利好高倍数成长股重估；MRVL作为自定义ASIC与光互连核心标的，直接受益于超大规模云厂商资本开支扩张，宏观顺风明显。\n\n---\n\n**【操作建议】**\n- 📊 综合评分：**68/100 → 买入**\n- 🛑 止损参考：**$291.95**（约-5.8%，对应MA20支撑区）\n- 📐 仓位建议：**不超过5%**（高Beta高波动，严控单仓敞口）"
+    },
+    {
+      "sym": "SPCX",
+      "name": "SpaceX (Space Exploration Technologies)",
+      "sector": "Aerospace/Satellite/AI",
+      "price": 185.0,
+      "change_pct": -3.56,
+      "rsi": "N/A",
+      "pe_ratio": "N/A",
+      "forward_pe": 711.5,
+      "peg_ratio": "N/A",
+      "ma5": 188.33,
+      "ma20": "N/A",
+      "ma50": "N/A",
+      "ma_cross": null,
+      "vol_ratio": 0.94,
+      "rel_strength_3m": "N/A",
+      "vol_30d_annualized": "N/A",
+      "target_price": 187.8,
+      "target_high": 310.0,
+      "target_low": 62.0,
+      "num_analysts": 5,
+      "upside": 1.5,
+      "rev_growth": 15.4,
+      "eps_growth": 0,
+      "gross_margin": 48.8,
+      "fcf_yield": 0,
+      "fcf_margin": 0,
+      "inst_pct": 0,
+      "short_ratio": 0,
+      "analyst_rec": 1.71,
+      "beta": 1.0,
+      "market_cap_b": 2437.2,
+      "thin_history": true,
+      "trading_days": 5,
+      "scores": {
+        "composite": 60,
+        "label": "持有偏多",
+        "action": "持有/逢低买入",
+        "macro": 80,
+        "fundamental": 39,
+        "technical": 50,
+        "sentiment": 84,
+        "risk": 81,
+        "stop_loss": 177.6,
+        "position_pct": 3,
+        "alerts": [],
+        "fundamental_sub": [
+          {
+            "label": "Revenue Growth (YoY代理3Y CAGR)",
+            "weight": 0.2,
+            "score": 65,
+            "detail": "+15.4%"
+          },
+          {
+            "label": "Profit Growth (YoY代理3Y CAGR)",
+            "weight": 0.2,
+            "score": 30,
+            "detail": "+0.0%"
+          },
+          {
+            "label": "FCF Margin",
+            "weight": 0.1225,
+            "score": 25,
+            "detail": "0.0%"
+          },
+          {
+            "label": "Gross Margin",
+            "weight": 0.105,
+            "score": 55,
+            "detail": "48.8%"
+          },
+          {
+            "label": "EPS Growth",
+            "weight": 0.1225,
+            "score": 25,
+            "detail": "+0.0%"
+          },
+          {
+            "label": "Forward PE",
+            "weight": 0.075,
+            "score": 25,
+            "detail": "711.5x"
+          },
+          {
+            "label": "PEG Ratio",
+            "weight": 0.1,
+            "score": 50,
+            "detail": "N/A"
+          },
+          {
+            "label": "FCF Yield",
+            "weight": 0.075,
+            "score": 20,
+            "detail": "0.0%"
+          }
+        ],
+        "technical_sub": [
+          {
+            "label": "数据不足",
+            "weight": 1.0,
+            "score": 50,
+            "detail": "上市仅5个交易日，技术面暂不可靠，中性处理"
+          }
+        ],
+        "sentiment_sub": [
+          {
+            "label": "VIX",
+            "weight": 0.6,
+            "score": 90,
+            "detail": "16.4"
+          },
+          {
+            "label": "Equity Put/Call Ratio (代理:分析师评级方向)",
+            "weight": 0.2,
+            "score": 80,
+            "detail": "分析师评级1.7(1=买入,5=卖出)，非真实Put/Call数据"
+          },
+          {
+            "label": "Positive Analyst Rating",
+            "weight": 0.2,
+            "score": 70,
+            "detail": "约72%(由评级均值估算)"
+          }
+        ],
+        "risk_sub": [
+          {
+            "label": "VIX",
+            "weight": 0.45,
+            "score": 90,
+            "detail": "16.4"
+          },
+          {
+            "label": "10Y Treasury Yield",
+            "weight": 0.35,
+            "score": 70,
+            "detail": "4.45%"
+          },
+          {
+            "label": "High Yield Credit Spread (代理:Beta+市值)",
+            "weight": 0.2,
+            "score": 80,
+            "detail": "Beta=1.00, 市值$2437B，非真实信用利差数据"
+          }
+        ],
+        "macro_sub": [
+          {
+            "label": "Fed Funds Rate",
+            "weight": 0.18,
+            "score": 70,
+            "detail": "3.63%"
+          },
+          {
+            "label": "10Y Treasury Yield",
+            "weight": 0.18,
+            "score": 70,
+            "detail": "4.45%"
+          },
+          {
+            "label": "Core PCE YoY",
+            "weight": 0.1,
+            "score": 100,
+            "detail": "+0.24%"
+          },
+          {
+            "label": "Unemployment Rate",
+            "weight": 0.1,
+            "score": 90,
+            "detail": "4.3%"
+          },
+          {
+            "label": "Nonfarm Payroll Change",
+            "weight": 0.1,
+            "score": 90,
+            "detail": "+172k"
+          },
+          {
+            "label": "ISM Manufacturing PMI",
+            "weight": 0.1,
+            "score": 50,
+            "detail": "中性占位(无免费实时源，需手动更新)"
+          },
+          {
+            "label": "US Dollar Index (DXY)",
+            "weight": 0.05,
+            "score": 85,
+            "detail": "100.8"
+          },
+          {
+            "label": "WTI Oil Price",
+            "weight": 0.12,
+            "score": 90,
+            "detail": "$76.5"
+          },
+          {
+            "label": "WTI 1M % Change",
+            "weight": 0.07,
+            "score": 90,
+            "detail": "-0.08%"
+          }
+        ]
+      },
+      "commentary": "【基本面 - 评分39/100】\n营收3年CAGR达15.4%，毛利率48.8%，显示SpaceX在商业航天领域具备一定的规模壁垒，但盈利质量堪忧——利润增长率0%、EPS增长0%、FCF Margin为零，表明公司仍处于重资本投入阶段，现金尚未转化为股东回报。Forward PE高达711.5x，完全脱离传统估值框架，市场定价的是远期的星链商业化与星舰项目成熟的期权价值，而非当期盈利能力；在此估值水位，任何商业化节奏的延误都将带来极大的估值压缩风险。\n\n【技术面 - 评分50/100】\n⚠️ SPCX上市仅5个交易日，历史价格数据严重不足，均线系统、RSI、MACD等全部技术指标均不具备统计意义，技术面当前给予中性处理（50分）。今日单日跌幅3.56%，无法判断是正常的新股波动还是趋势性走弱，建议至少待30个交易日数据积累后再引入技术面参考；当前价格行为应聚焦于成交量结构与做市价差，而非传统动量信号。\n\n【情绪面 - 评分84/100】\nVIX报16.4，市场整体恐慌情绪处于低位，风险偏好环境对高估值成长股形成结构性支撑。分析师评级均值1.7（1=强买入），约72%持正面看法，反映机构对SpaceX长期叙事的高度认可；但需注意评级样本量有限，且分析师覆盖多围绕远期故事而非当期财务数据，情绪共识存在一定泡沫化风险。综合来看，情绪面是当前SPCX最强的支撑维度。\n\n【风险面 - 评分81/100】\nBeta=1.00、市值$2437B，绝对体量提供了一定的系统性稳定性，但711x PE意味着估值对利率和增长预期极度敏感——10年期美债收益率当前4.45%，任何超预期上行都将直接压制高久期资产。核心风险点包括：星舰研发进度不确定性、FAA监管审批节奏、Starlink竞争格局演变，以及上市初期流动性不足导致的价格剧烈波动；新股前30日做市机制尚未稳定，大单冲击成本显著高于成熟标的。\n\n【宏观影响 - 评分80/100】\n当前宏观环境——低VIX、美联储降息预期边际回暖、风险偏好偏强——对SpaceX此类高估值、长久期成长叙事整体利好，资金倾向于追逐具备\"颠覆性\"标签的资产。然而4.45%的10年期美债收益率仍在历史偏高区间，对711x PE构成持续的折现率压力，宏观顺风与估值逆风并存，整体影响评分80分属于支持但非强烈催化。\n\n---\n\n【操作建议】\n• **综合评分：60/100 → 持有 / 逢低买入**\n• **止损参"
+    },
+    {
+      "sym": "VUAG.L",
+      "name": "Vanguard S&P 500 UCITS ETF",
+      "sector": "Index ETF",
+      "price": 109.42,
+      "change_pct": 0.26,
+      "rsi": 53.5,
+      "pe_ratio": "N/A",
+      "forward_pe": "N/A",
+      "peg_ratio": "N/A",
+      "ma5": 108.8,
+      "ma20": 107.95,
+      "ma50": 104.8,
+      "ma_cross": null,
+      "vol_ratio": 0.77,
+      "rel_strength_3m": -10.3,
+      "vol_30d_annualized": 11.6,
+      "target_price": 109.42,
+      "target_high": 109.42,
+      "target_low": 109.42,
+      "num_analysts": 0,
+      "upside": 0.0,
+      "rev_growth": 0,
+      "eps_growth": 0,
+      "gross_margin": 0,
+      "fcf_yield": 0,
+      "fcf_margin": 0,
+      "inst_pct": 0,
+      "short_ratio": 0,
+      "analyst_rec": 3.0,
+      "beta": 1.0,
+      "market_cap_b": 0.0,
+      "thin_history": false,
+      "trading_days": 89,
+      "scores": {
+        "composite": 58,
+        "label": "持有偏多",
+        "action": "持有/逢低买入",
+        "macro": 80,
+        "fundamental": 31,
+        "technical": 61,
+        "sentiment": 73,
+        "risk": 77,
+        "stop_loss": 105.04,
+        "position_pct": 2,
+        "alerts": [],
+        "fundamental_sub": [
+          {
+            "label": "Revenue Growth (YoY代理3Y CAGR)",
+            "weight": 0.2,
+            "score": 30,
+            "detail": "+0.0%"
+          },
+          {
+            "label": "Profit Growth (YoY代理3Y CAGR)",
+            "weight": 0.2,
+            "score": 30,
+            "detail": "+0.0%"
+          },
+          {
+            "label": "FCF Margin",
+            "weight": 0.1225,
+            "score": 25,
+            "detail": "0.0%"
+          },
+          {
+            "label": "Gross Margin",
+            "weight": 0.105,
+            "score": 25,
+            "detail": "0.0%"
+          },
+          {
+            "label": "EPS Growth",
+            "weight": 0.1225,
+            "score": 25,
+            "detail": "+0.0%"
+          },
+          {
+            "label": "Forward PE",
+            "weight": 0.075,
+            "score": 50,
+            "detail": "N/A"
+          },
+          {
+            "label": "PEG Ratio",
+            "weight": 0.1,
+            "score": 50,
+            "detail": "N/A"
+          },
+          {
+            "label": "FCF Yield",
+            "weight": 0.075,
+            "score": 20,
+            "detail": "0.0%"
+          }
+        ],
+        "technical_sub": [
+          {
+            "label": "Trend Composite",
+            "weight": 0.25,
+            "score": 68,
+            "detail": "MA5/20无交叉, 站上MA20:True, MA50:True, MA200:None"
+          },
+          {
+            "label": "3M Relative Strength vs QQQ",
+            "weight": 0.25,
+            "score": 30,
+            "detail": "-10.3pp"
+          },
+          {
+            "label": "RSI(14)",
+            "weight": 0.15,
+            "score": 75,
+            "detail": "54"
+          },
+          {
+            "label": "Volume Ratio",
+            "weight": 0.15,
+            "score": 50,
+            "detail": "0.77x"
+          },
+          {
+            "label": "30D Annualised Volatility",
+            "weight": 0.1,
+            "score": 90,
+            "detail": "11.6%"
+          },
+          {
+            "label": "Beta vs QQQ/S&P",
+            "weight": 0.1,
+            "score": 90,
+            "detail": "1.00"
+          }
+        ],
+        "sentiment_sub": [
+          {
+            "label": "VIX",
+            "weight": 0.6,
+            "score": 90,
+            "detail": "16.4"
+          },
+          {
+            "label": "Equity Put/Call Ratio (代理:分析师评级方向)",
+            "weight": 0.2,
+            "score": 45,
+            "detail": "分析师评级3.0(1=买入,5=卖出)，非真实Put/Call数据"
+          },
+          {
+            "label": "Positive Analyst Rating",
+            "weight": 0.2,
+            "score": 50,
+            "detail": "无分析师覆盖数据"
+          }
+        ],
+        "risk_sub": [
+          {
+            "label": "VIX",
+            "weight": 0.45,
+            "score": 90,
+            "detail": "16.4"
+          },
+          {
+            "label": "10Y Treasury Yield",
+            "weight": 0.35,
+            "score": 70,
+            "detail": "4.45%"
+          },
+          {
+            "label": "High Yield Credit Spread (代理:Beta+市值)",
+            "weight": 0.2,
+            "score": 60,
+            "detail": "Beta=1.00, 市值$0B，非真实信用利差数据"
+          }
+        ],
+        "macro_sub": [
+          {
+            "label": "Fed Funds Rate",
+            "weight": 0.18,
+            "score": 70,
+            "detail": "3.63%"
+          },
+          {
+            "label": "10Y Treasury Yield",
+            "weight": 0.18,
+            "score": 70,
+            "detail": "4.45%"
+          },
+          {
+            "label": "Core PCE YoY",
+            "weight": 0.1,
+            "score": 100,
+            "detail": "+0.24%"
+          },
+          {
+            "label": "Unemployment Rate",
+            "weight": 0.1,
+            "score": 90,
+            "detail": "4.3%"
+          },
+          {
+            "label": "Nonfarm Payroll Change",
+            "weight": 0.1,
+            "score": 90,
+            "detail": "+172k"
+          },
+          {
+            "label": "ISM Manufacturing PMI",
+            "weight": 0.1,
+            "score": 50,
+            "detail": "中性占位(无免费实时源，需手动更新)"
+          },
+          {
+            "label": "US Dollar Index (DXY)",
+            "weight": 0.05,
+            "score": 85,
+            "detail": "100.8"
+          },
+          {
+            "label": "WTI Oil Price",
+            "weight": 0.12,
+            "score": 90,
+            "detail": "$76.5"
+          },
+          {
+            "label": "WTI 1M % Change",
+            "weight": 0.07,
+            "score": 90,
+            "detail": "-0.08%"
+          }
+        ]
+      },
+      "commentary": "【基本面 - 评分31/100】\nVUAG.L为纯被动指数ETF，追踪S&P 500，本身无营收/利润/FCF等独立财务数据，导致所有基本面子指标均归零或N/A，综合评分仅31分属系统局限而非基本面恶化。实质上，该ETF底层持仓的加权平均Forward PE约为21-22x，对应S&P 500整体估值水平，处于历史中高位区间，并非廉价但亦有基本面支撑。\n\n【技术面 - 评分61/100】\n价格站上MA20与MA50，趋势结构完整，短期动能维持正偏，RSI(14)报54处于中性偏多区间，无超买压力。然而，过去3个月相对QQQ跑输10.3个百分点，显示资金在此轮反弹中更偏好科技成长风格，VUAG的大盘均衡配置相对拖累明显；成交量比率0.77x略低于均值，上行动能尚待放量确认。\n\n【情绪面 - 评分73/100】\nVIX收于16.4，处于近年低波动区间，市场整体恐慌情绪消退，系统性风险溢价压缩，对宽基ETF形成有利的定价环境。ETF本身无分析师覆盖及真实Put/Call数据，情绪信号以宏观恐慌指标为主导，当前读数支持风险资产温和做多偏向。\n\n【风险面 - 评分77/100】\nBeta精确为1.00，VUAG与S&P 500完全同步，无超额风险亦无下行缓冲，在市场回调时将被动承受全部指数跌幅。30日年化波动率仅11.6%，处于历史低位，风险评分偏高；但需警惕低波动环境本身可能孕育的骤然波动回归风险，叠加10Y美债收益率4.45%持续对权益估值形成压制，若利率再度走高将直接压缩指数估值空间。\n\n【宏观影响 - 评分80/100】\n当前宏观环境评分80分，美联储降息预期温和、信用利差收窄、VIX低位共同构成宽基ETF的偏友好底色，VUAG作为S&P 500全复制产品可直接受益于风险偏好改善与美股整体流入；唯需关注若宏观数据超预期强劲导致降息预期进一步后移，对高估值指数的再定价压力。\n\n---\n\n【操作建议】\n• 综合评分：58/100 → **持有 / 逢低买入**\n• 止损参考：$105.04（约-3.9%，对应近期技术支撑下方）\n• 仓位建议：不超过2%（宽基ETF适合作为底仓配置，而非主动博弈标的）"
+    }
+  ]
+}
