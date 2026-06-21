@@ -34,14 +34,23 @@ const { useState, useEffect, useMemo } = React;
 // 部署地址：仓库 Maximumxc/Market-Agent 的 GitHub Pages
 // （注意：GitHub Pages域名部分强制全小写，仓库名部分保留原大小写）
 const DASHBOARD_DATA_URL = "https://maximumxc.github.io/Market-Agent/dashboard_data.json";
+const A_SHARE_DATA_URL = "https://maximumxc.github.io/Market-Agent/a_share_data.json";
+
+const MONITOR_BAND_COLORS = {
+  "Strong Upcycle": "strongbuy",
+  "Healthy Recovery": "buy",
+  "Neutral": "holdbuy",
+  "Weakening": "reduce",
+  "Downcycle": "strongsell",
+};
 
 const ACTION_BANDS = [
-  { min: 75, max: 101, label: "强烈买入", action: "积极加仓", tone: "strongbuy" },
-  { min: 65, max: 75,  label: "买入",     action: "买入",     tone: "buy" },
-  { min: 55, max: 65,  label: "持有偏多", action: "持有/逢低买入", tone: "holdbuy" },
-  { min: 45, max: 55,  label: "谨慎",     action: "谨慎",     tone: "caution" },
-  { min: 35, max: 45,  label: "减仓",     action: "减仓",     tone: "reduce" },
-  { min: 0,  max: 35,  label: "强烈卖出", action: "大幅减仓", tone: "strongsell" },
+  { min: 85, max: 101, label: "强烈买入", action: "积极加仓", tone: "strongbuy" },
+  { min: 75, max: 85,  label: "买入",     action: "买入",     tone: "buy" },
+  { min: 60, max: 75,  label: "持有偏多", action: "持有/逢低买入", tone: "holdbuy" },
+  { min: 50, max: 60,  label: "谨慎",     action: "谨慎",     tone: "caution" },
+  { min: 40, max: 50,  label: "减仓",     action: "减仓",     tone: "reduce" },
+  { min: 0,  max: 40,  label: "强烈卖出", action: "大幅减仓", tone: "strongsell" },
 ];
 
 function actionForScore(score) {
@@ -205,6 +214,41 @@ function WatchlistRow({ stock, selected, onSelect }) {
   );
 }
 
+function WatchlistRowCN({ stock, selected, onSelect }) {
+  const chg = stock.change_pct ?? 0;
+  const up = chg >= 0;
+  const available = stock.available;
+
+  return (
+    <div
+      onClick={() => onSelect(stock)}
+      style={{
+        display: "grid", gridTemplateColumns: "1fr auto", alignItems: "center", gap: 10,
+        padding: "10px 12px", cursor: "pointer",
+        background: selected ? C.panelAlt : "transparent",
+        borderLeft: selected ? `2px solid ${C.accent}` : "2px solid transparent",
+      }}
+    >
+      <div>
+        <div style={{ fontFamily: fontSans, fontSize: 13, fontWeight: 700, color: C.text }}>{stock.name}</div>
+        <div style={{ fontFamily: fontMono, fontSize: 10.5, color: C.textFaint, marginTop: 1 }}>
+          {stock.sym} · {stock.sector}
+        </div>
+      </div>
+      {available ? (
+        <div style={{ textAlign: "right" }}>
+          <div style={{ fontFamily: fontMono, fontSize: 12, color: C.textDim }}>¥{stock.price?.toFixed(2) ?? "—"}</div>
+          <div style={{ fontFamily: fontMono, fontSize: 11, color: up ? C.green : C.red, marginTop: 1 }}>
+            {up ? "▲" : "▼"}{Math.abs(chg).toFixed(2)}%
+          </div>
+        </div>
+      ) : (
+        <div style={{ fontFamily: fontSans, fontSize: 10.5, color: C.textFaint }}>数据不可用</div>
+      )}
+    </div>
+  );
+}
+
 function CommentaryParagraph({ label, score, text, icon }) {
   const band = actionForScore(score);
   const color = toneColor(band.tone);
@@ -230,10 +274,13 @@ function CommentaryParagraph({ label, score, text, icon }) {
 
 function MFTSRDashboard() {
   const [data, setData] = useState(null);
+  const [aShareData, setAShareData] = useState(null);
+  const [aShareError, setAShareError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedSym, setSelectedSym] = useState(null);
   const [tab, setTab] = useState("report");
+  const [region, setRegion] = useState("us"); // us | cn
 
   useEffect(() => {
     fetch(DASHBOARD_DATA_URL)
@@ -252,12 +299,27 @@ function MFTSRDashboard() {
         setError(err.message);
         setLoading(false);
       });
+
+    // A股数据单独fetch，失败不影响美股Dashboard主流程显示
+    fetch(A_SHARE_DATA_URL)
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then((json) => setAShareData(json))
+      .catch((err) => setAShareError(err.message));
   }, []);
 
   const selected = useMemo(
     () => data?.stocks?.find((s) => s.sym === selectedSym),
     [data, selectedSym]
   );
+
+  const selectedCN = useMemo(() => {
+    if (!aShareData) return null;
+    const all = [...(aShareData.holdings || []), ...(aShareData.watchlist || [])];
+    return all.find((s) => s.sym === selectedSym);
+  }, [aShareData, selectedSym]);
 
   const parsed = useMemo(
     () => (selected ? parseCommentaryParagraphs(selected.commentary) : { sections: [], actionText: null }),
@@ -307,6 +369,7 @@ function MFTSRDashboard() {
   }
 
   const watchlist = data.stocks || [];
+  const aShareAll = aShareData ? [...(aShareData.holdings || []), ...(aShareData.watchlist || [])] : [];
 
   return (
     <div style={{ background: C.bg, minHeight: "100vh", color: C.text, fontFamily: fontSans }}>
@@ -329,20 +392,58 @@ function MFTSRDashboard() {
 
       <div style={{ display: "grid", gridTemplateColumns: "260px 1fr", minHeight: "calc(100vh - 53px)" }}>
         <div style={{ borderRight: `1px solid ${C.border}`, background: C.panel, overflowY: "auto" }}>
-          <div style={{
-            padding: "10px 12px 6px", fontFamily: fontSans, fontSize: 10.5,
-            color: C.textFaint, letterSpacing: "0.08em", textTransform: "uppercase",
-          }}>
-            股票池 WATCHLIST · {watchlist.length}
+          <div style={{ display: "flex", padding: "10px 12px 0", gap: 6 }}>
+            {[["us", "🇺🇸 美股"], ["cn", "🇨🇳 A股"]].map(([key, label]) => (
+              <button
+                key={key}
+                onClick={() => setRegion(key)}
+                style={{
+                  flex: 1, background: region === key ? C.accentDim : "transparent",
+                  border: `1px solid ${region === key ? C.accent : C.border}`,
+                  color: region === key ? C.accent : C.textFaint,
+                  borderRadius: 6, padding: "6px 8px", fontFamily: fontSans, fontSize: 12, cursor: "pointer",
+                }}
+              >
+                {label}
+              </button>
+            ))}
           </div>
-          {watchlist.map((s) => (
-            <WatchlistRow key={s.sym} stock={s} selected={selectedSym === s.sym} onSelect={(s2) => setSelectedSym(s2.sym)} />
-          ))}
+
+          {region === "us" ? (
+            <>
+              <div style={{
+                padding: "10px 12px 6px", fontFamily: fontSans, fontSize: 10.5,
+                color: C.textFaint, letterSpacing: "0.08em", textTransform: "uppercase",
+              }}>
+                股票池 WATCHLIST · {watchlist.length}
+              </div>
+              {watchlist.map((s) => (
+                <WatchlistRow key={s.sym} stock={s} selected={selectedSym === s.sym} onSelect={(s2) => setSelectedSym(s2.sym)} />
+              ))}
+            </>
+          ) : (
+            <>
+              <div style={{
+                padding: "10px 12px 6px", fontFamily: fontSans, fontSize: 10.5,
+                color: C.textFaint, letterSpacing: "0.08em", textTransform: "uppercase",
+              }}>
+                A股持仓+关注 · {aShareAll.length}
+              </div>
+              {aShareError && (
+                <div style={{ padding: "10px 12px", fontFamily: fontSans, fontSize: 11, color: C.red }}>
+                  A股数据加载失败: {aShareError}
+                </div>
+              )}
+              {aShareAll.map((s) => (
+                <WatchlistRowCN key={s.sym} stock={s} selected={selectedSym === s.sym} onSelect={(s2) => setSelectedSym(s2.sym)} />
+              ))}
+            </>
+          )}
         </div>
 
         <div style={{ padding: "20px 24px", overflowY: "auto" }}>
           <div style={{ display: "flex", gap: 6, marginBottom: 18 }}>
-            {[["report", "📊 分析报告"], ["model", "🧠 模型框架"], ["legend", "📐 评分标准"]].map(([key, label]) => (
+            {[["report", "📊 分析报告"], ["model", "🧠 模型框架"], ["monitors", "🔭 独立监测"], ["legend", "📐 评分标准"]].map(([key, label]) => (
               <button
                 key={key} onClick={() => setTab(key)}
                 style={{
@@ -357,7 +458,85 @@ function MFTSRDashboard() {
             ))}
           </div>
 
-          {tab === "report" && selected && (
+          {tab === "report" && region === "cn" && (
+            <div>
+              <div style={{
+                background: C.panel, border: `1px solid ${C.border}`, borderRadius: 10, padding: 16, marginBottom: 16,
+              }}>
+                <div style={{ fontFamily: fontSans, fontSize: 13, fontWeight: 600, color: C.accent, marginBottom: 10 }}>
+                  🌐 海外宏观背景
+                </div>
+                <div style={{ fontFamily: fontSans, fontSize: 12.5, color: C.textDim, lineHeight: 1.7, whiteSpace: "pre-wrap", maxHeight: 140, overflowY: "auto" }}>
+                  {aShareData?.macro_commentary || (aShareError ? `加载失败: ${aShareError}` : "正在加载...")}
+                </div>
+              </div>
+
+              <div style={{
+                background: C.panel, border: `1px solid ${C.border}`, borderRadius: 10, padding: 16, marginBottom: 16,
+              }}>
+                <div style={{ fontFamily: fontSans, fontSize: 13, fontWeight: 600, color: C.accent, marginBottom: 10 }}>
+                  🇨🇳 国内政策面与消息面
+                </div>
+                <div style={{ fontFamily: fontSans, fontSize: 12.5, color: C.textDim, lineHeight: 1.7, whiteSpace: "pre-wrap", maxHeight: 140, overflowY: "auto" }}>
+                  {aShareData?.china_commentary || "暂无数据"}
+                </div>
+                <div style={{ marginTop: 8, fontFamily: fontSans, fontSize: 10.5, color: C.textFaint, fontStyle: "italic" }}>
+                  ⚠️ 地缘政治/政策面分析为AI定性判断，非实时新闻，请结合最新公告核实。
+                </div>
+              </div>
+
+              {selectedCN ? (
+                <div style={{
+                  background: C.panel, border: `1px solid ${C.border}`, borderRadius: 10, padding: 18,
+                }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
+                    <div>
+                      <div style={{ fontFamily: fontSans, fontSize: 20, fontWeight: 700 }}>{selectedCN.name}</div>
+                      <div style={{ fontFamily: fontMono, fontSize: 12, color: C.textDim, marginTop: 2 }}>
+                        {selectedCN.sym} · {selectedCN.sector}
+                      </div>
+                    </div>
+                    {selectedCN.available ? (
+                      <div style={{ textAlign: "right" }}>
+                        <div style={{ fontFamily: fontMono, fontSize: 20 }}>¥{selectedCN.price?.toFixed(2)}</div>
+                        <div style={{ fontFamily: fontMono, fontSize: 13, color: selectedCN.change_pct >= 0 ? C.green : C.red, marginTop: 2 }}>
+                          {selectedCN.change_pct >= 0 ? "+" : ""}{selectedCN.change_pct?.toFixed(2)}%
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ fontFamily: fontSans, fontSize: 12, color: C.textFaint }}>⚠️ 数据不可用</div>
+                    )}
+                  </div>
+
+                  {selectedCN.available && (
+                    <div style={{ display: "flex", gap: 20, marginBottom: 14, fontFamily: fontMono, fontSize: 12 }}>
+                      <div><span style={{ color: C.textFaint }}>MA5 </span>{selectedCN.ma5 ?? "—"}</div>
+                      <div><span style={{ color: C.textFaint }}>MA20 </span>{selectedCN.ma20 ?? "—"}</div>
+                      <div><span style={{ color: C.textFaint }}>RSI </span>{selectedCN.rsi ?? "—"}</div>
+                      <div><span style={{ color: C.textFaint }}>量比 </span>{selectedCN.vol_ratio ?? "—"}</div>
+                    </div>
+                  )}
+
+                  <div style={{
+                    padding: "14px 16px", background: C.panelAlt, borderRadius: 8, border: `1px solid ${C.border}`,
+                    fontFamily: fontSans, fontSize: 13, color: C.textDim, lineHeight: 1.7, whiteSpace: "pre-wrap",
+                  }}>
+                    {selectedCN.commentary || "暂无AI解读"}
+                  </div>
+
+                  <div style={{ marginTop: 10, fontFamily: fontSans, fontSize: 10.5, color: C.textFaint }}>
+                    A股报告为简化版（价格+MA/RSI+AI简评），不含完整MFTSR五维评分体系。
+                  </div>
+                </div>
+              ) : (
+                <div style={{ fontFamily: fontSans, fontSize: 13, color: C.textFaint, textAlign: "center", padding: 40 }}>
+                  从左侧选择一只A股持仓或关注标的
+                </div>
+              )}
+            </div>
+          )}
+
+          {tab === "report" && region === "us" && selected && (
             <div>
               <div style={{
                 background: C.panel, border: `1px solid ${C.border}`, borderRadius: 10, padding: 16, marginBottom: 16,
@@ -565,6 +744,85 @@ function MFTSRDashboard() {
             </div>
           )}
 
+          {tab === "monitors" && (
+            <div>
+              <div style={{
+                background: C.amberDim, border: `1px solid ${C.amber}40`, borderRadius: 10, padding: 16, marginBottom: 16,
+                fontFamily: fontSans, fontSize: 12, color: C.textDim, lineHeight: 1.7,
+              }}>
+                <strong style={{ color: C.amber }}>独立于MFTSR评分。</strong> 以下5个模块追踪外部行业周期
+                （存储芯片定价、AI资本支出、半导体周期、中国政策、电力转型），完全不参与MFTSR综合分计算，
+                仅作为额外参考维度。每个子指标都是Claude基于知识库的定性判断，不是实时数据，已逐项标注理由。
+              </div>
+
+              {data.monitors && Object.keys(data.monitors).length > 0 ? (
+                Object.entries(data.monitors).map(([key, mon]) => {
+                  const tone = MONITOR_BAND_COLORS[mon.band] || "holdbuy";
+                  const color = toneColor(tone);
+                  return (
+                    <div key={key} style={{
+                      background: C.panel, border: `1px solid ${C.border}`, borderRadius: 10,
+                      marginBottom: 14, overflow: "hidden",
+                    }}>
+                      <div style={{
+                        padding: "14px 18px", borderBottom: `1px solid ${C.border}`,
+                        display: "flex", justifyContent: "space-between", alignItems: "center",
+                      }}>
+                        <div>
+                          <div style={{ fontFamily: fontSans, fontSize: 14, fontWeight: 600, color: C.text }}>
+                            {mon.label} <span style={{ color: C.textFaint, fontSize: 11.5 }}>· {mon.label_zh}</span>
+                          </div>
+                          <div style={{ fontFamily: fontSans, fontSize: 11, color: C.textFaint, marginTop: 3 }}>
+                            {mon.applicable_note}
+                          </div>
+                        </div>
+                        <div style={{ textAlign: "right" }}>
+                          <div style={{ fontFamily: fontMono, fontSize: 22, fontWeight: 700, color }}>{mon.composite}</div>
+                          <div style={{ fontFamily: fontSans, fontSize: 10.5, color }}>{mon.band_zh}</div>
+                        </div>
+                      </div>
+
+                      <div style={{ padding: "8px 18px" }}>
+                        {mon.metrics.map((m) => (
+                          <div key={m.key} style={{
+                            display: "flex", justifyContent: "space-between", alignItems: "flex-start",
+                            padding: "8px 0", borderBottom: `1px solid ${C.border}`, gap: 12,
+                          }}>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ fontFamily: fontSans, fontSize: 12.5, color: C.text }}>
+                                {m.label} <span style={{ color: C.textFaint, fontSize: 10.5 }}>· 权重{Math.round(m.weight * 100)}%</span>
+                              </div>
+                              <div style={{ fontFamily: fontSans, fontSize: 11, color: C.textFaint, marginTop: 2 }}>
+                                {m.rationale}
+                              </div>
+                            </div>
+                            <div style={{
+                              fontFamily: fontMono, fontSize: 14, fontWeight: 700,
+                              color: m.score >= 70 ? C.green : m.score >= 45 ? C.amber : C.red,
+                            }}>
+                              {m.score}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div style={{
+                        padding: "10px 18px", fontFamily: fontSans, fontSize: 11, color: C.textFaint,
+                        fontStyle: "italic", background: C.panelAlt,
+                      }}>
+                        {mon.caveat} <span style={{ color: C.amber }}>（AI定性判断，非实时数据）</span>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div style={{ fontFamily: fontSans, fontSize: 13, color: C.textFaint, textAlign: "center", padding: 40 }}>
+                  暂无监测数据（可能本次报告未生成monitors字段，或数据加载失败）
+                </div>
+              )}
+            </div>
+          )}
+
           {tab === "legend" && (
             <div>
               <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden" }}>
@@ -587,8 +845,8 @@ function MFTSRDashboard() {
                 })}
               </div>
               <div style={{ marginTop: 14, padding: 14, background: C.panelAlt, border: `1px solid ${C.border}`, borderRadius: 8, fontFamily: fontSans, fontSize: 12, color: C.textDim }}>
-                与Excel模型Dashboard的Action Guide完全一致：&gt;75积极加仓 / 65-75买入 / 55-65持有逢低买入 /
-                45-55谨慎 / 35-45减仓 / &lt;35大幅减仓。
+                与Excel模型Dashboard的Action Guide完全一致：&gt;85积极加仓 / 75-85买入 / 60-75持有逢低买入 /
+                50-60谨慎 / 40-50减仓 / &lt;40大幅减仓。
               </div>
             </div>
           )}
