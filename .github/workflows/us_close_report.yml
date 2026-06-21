@@ -1,22 +1,29 @@
 # .github/workflows/us_close_report.yml
 #
-# 美股收盘完整报告 — MFTSR Alpha
-# 每天一次，UK时间21:30（对应美东16:30，收盘后），双语输出（中文+英文）
+# 美股收盘完整报告 — MFTSR Alpha（v5：精确对齐Excel框架，5段式AI解读）
+# 频次：每周一、三、五，UK时间21:30（对应美东16:30，收盘后）
+# 消息结构：1条宏观简报 + N条个股报告（每条含5段AI解读）+ 1条汇总，全部中文
+# 同时把当天的真实价格/评分/AI解读导出为 docs/dashboard_data.json，
+# 提交回仓库，供 GitHub Pages 托管的 Dashboard 网页读取。
 
 name: 美股收盘报告
 
 on:
   schedule:
     # ── BST 夏令时版本（3月最后周日 ~ 10月最后周日适用）──────────────
-    # UK 21:30 BST = 20:30 UTC
-    - cron: '30 20 * * 1-5'
+    # UK 21:30 BST = 20:30 UTC，仅周一/三/五（cron星期字段：1=周一,3=周三,5=周五）
+    - cron: '30 20 * * 1,3,5'
 
     # ── GMT 冬令时版本（10月最后周日 ~ 3月最后周日适用）──────────────
     # 切换时注释掉上面一行，取消下面这行注释：
     # UK 21:30 GMT = 21:30 UTC
-    # - cron: '30 21 * * 1-5'
+    # - cron: '30 21 * * 1,3,5'
 
   workflow_dispatch:   # 允许手动触发测试
+
+# 允许此workflow写入仓库内容（提交dashboard_data.json需要写权限）
+permissions:
+  contents: write
 
 jobs:
   run-close-report:
@@ -43,6 +50,16 @@ jobs:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
-          REPORT_TYPE: "close"
-          MAX_TICKERS: "15"
+          # 如需自定义股票池，取消下面这行注释并修改代码列表：
+          # WATCHLIST: "NVDA,AAPL,MSFT,META,TSLA"
         run: python us_close_report.py
+
+      - name: 提交 dashboard_data.json 到仓库（供 GitHub Pages 读取）
+        run: |
+          git config user.name "mftsr-bot"
+          git config user.email "actions@github.com"
+          git add docs/dashboard_data.json
+          git diff --staged --quiet && echo "无变化，跳过提交" || git commit -m "更新Dashboard数据 $(date -u +%Y-%m-%d)"
+          git push
+
+
