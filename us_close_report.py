@@ -8,7 +8,7 @@ v5 更新（对齐 MFTSR_AI_Growth_Model_EN.xlsx 精确框架）：
      四项已从MFTSR评分中移除（按用户指示），其定性信息仅作为宏观简报的文字背景，
      不计入任何维度评分。
   4. MFTSR评分区间改为6档（与Excel Dashboard的Action guide一致）：
-     ≥75 积极加仓 / 65-75 买入 / 55-65 持有逢低买入 / 45-55 谨慎 / 35-45 减仓 / <35 大幅减仓
+     ≥85 积极加仓 / 75-85 买入 / 60-75 持有逢低买入 / 50-60 谨慎 / 40-50 减仓 / <40 大幅减仓
   5. AI解读改为5个独立段落（基本面/技术面/情绪/风险/宏观影响各一段），
      每段单独标注该维度评分。
   6. 频次改为每周一、三、五（原每个交易日），UK时间21:30不变。
@@ -52,12 +52,12 @@ else:
     WATCHLIST = DEFAULT_WATCHLIST
 
 SCORE_BANDS = [
-    (75, 101, "强烈买入", "积极加仓", "🟢🟢"),
-    (65, 75,  "买入",     "买入",     "🟢"),
-    (55, 65,  "持有偏多", "持有/逢低买入", "🟡"),
-    (45, 55,  "谨慎",     "谨慎",     "🟠"),
-    (35, 45,  "减仓",     "减仓",     "🔴"),
-    (0,  35,  "强烈卖出", "大幅减仓", "🔴🔴"),
+    (85, 101, "强烈买入", "积极加仓", "🟢🟢"),
+    (75, 85,  "买入",     "买入",     "🟢"),
+    (60, 75,  "持有偏多", "持有/逢低买入", "🟡"),
+    (50, 60,  "谨慎",     "谨慎",     "🟠"),
+    (40, 50,  "减仓",     "减仓",     "🔴"),
+    (0,  40,  "强烈卖出", "大幅减仓", "🔴🔴"),
 ]
 ALERT_DIM = 30
 
@@ -71,12 +71,12 @@ def score_band(score: int) -> tuple:
 
 SCORE_LEGEND_ZH = (
     "📐 <b>MFTSR评分标准</b>（与Excel模型Action Guide一致）\n"
-    "  🟢🟢 ≥75分    强烈买入 → 积极加仓\n"
-    "  🟢   65-75分  买入    → 买入\n"
-    "  🟡   55-65分  持有偏多 → 持有/逢低买入\n"
-    "  🟠   45-55分  谨慎    → 谨慎\n"
-    "  🔴   35-45分  减仓    → 减仓\n"
-    "  🔴🔴 <35分    强烈卖出 → 大幅减仓"
+    "  🟢🟢 ≥85分    强烈买入 → 积极加仓\n"
+    "  🟢   75-85分  买入    → 买入\n"
+    "  🟡   60-75分  持有偏多 → 持有/逢低买入\n"
+    "  🟠   50-60分  谨慎    → 谨慎\n"
+    "  🔴   40-50分  减仓    → 减仓\n"
+    "  🔴🔴 <40分    强烈卖出 → 大幅减仓"
 )
 
 
@@ -825,10 +825,197 @@ def build_footer(results: list) -> str:
 
 
 # ════════════════════════════════════════════════════════════════════════════
-#  5. Dashboard JSON 导出
+#  5.5. 独立监测模块 — Storage / AI Capex / Semiconductor / China Policy /
+#       Energy Transition（完全独立于MFTSR评分，权重精确对应Excel模型）
+#
+#  这5个模块的子指标全部是定性判断（DRAM价格趋势、HBM市场动态、超大规模厂商
+#  资本支出增速等），没有任何免费实时API能直接给出0-100的数字。这里用Claude
+#  基于其知识生成定性评分，每个分数都在UI和数据里明确标注"AI定性判断，非实时
+#  数据"，并建议用户结合最新行业资讯复核。
 # ════════════════════════════════════════════════════════════════════════════
 
-def export_dashboard_json(macro, macro_commentary, results, path="docs/dashboard_data.json"):
+MONITOR_DEFS = {
+    "storage": {
+        "label": "Storage Cycle Monitor", "label_zh": "存储周期监测",
+        "applicable": ["MU"],
+        "applicable_note": "MU, SK Hynix, Samsung Memory, Western Digital, SanDisk（仅MU在当前股票池内）",
+        "caveat": "专为存储芯片(DRAM/NAND/HBM)相关投资设计，不适用于软件/互联网等非存储敞口标的。",
+        "metrics": [
+            {"key": "dram_trend", "label": "DRAM Price Trend", "weight": 0.30,
+             "prompt": "DRAM现货/合约价格近期趋势（涨价/跌价/稳定，参考TrendForce/DRAMeXchange类公开报道方向）"},
+            {"key": "nand_trend", "label": "NAND Price Trend", "weight": 0.20,
+             "prompt": "NAND闪存现货/合约价格近期趋势"},
+            {"key": "hbm_trend", "label": "HBM Market Trend", "weight": 0.25,
+             "prompt": "HBM(高带宽存储)市场供需、定价、客户需求趋势"},
+            {"key": "inventory_cycle", "label": "Inventory Cycle", "weight": 0.15,
+             "prompt": "存储行业渠道库存周期（紧张/正常化/累库/严重过剩）"},
+            {"key": "supply_discipline", "label": "Supply Discipline", "weight": 0.10,
+             "prompt": "主要存储厂商的产能扩张纪律性（克制扩产/激进扩产）"},
+        ],
+    },
+    "ai_capex": {
+        "label": "AI Capex Monitor", "label_zh": "AI资本支出监测",
+        "applicable": ["NVDA", "AVGO", "MRVL", "MU"],
+        "applicable_note": "NVDA, AVGO, MRVL, MU（+ AMD/VRT/ANET作为参考，未在当前股票池）",
+        "caveat": "追踪超大规模云厂商AI基础设施支出周期，适用于AI算力/网络/存储硬件敞口标的。",
+        "metrics": [
+            {"key": "hyperscaler_capex", "label": "Hyperscaler Capex Growth", "weight": 0.30,
+             "prompt": "微软/谷歌/亚马逊/Meta等超大规模云厂商资本支出增速指引趋势"},
+            {"key": "ai_server_demand", "label": "AI Server Demand", "weight": 0.20,
+             "prompt": "AI服务器订单积压、交付周期长短反映的需求强弱"},
+            {"key": "gpu_demand", "label": "GPU Demand", "weight": 0.20,
+             "prompt": "GPU分配紧张程度、定价能力"},
+            {"key": "cloud_ai_spending", "label": "Cloud AI Spending", "weight": 0.15,
+             "prompt": "云厂商AI相关收入增长轨迹"},
+            {"key": "enterprise_ai_adoption", "label": "Enterprise AI Adoption", "weight": 0.15,
+             "prompt": "企业AI部署/预算投入节奏"},
+        ],
+    },
+    "semiconductor": {
+        "label": "Semiconductor Cycle Monitor", "label_zh": "半导体周期监测",
+        "applicable": ["NVDA", "AVGO", "MRVL"],
+        "applicable_note": "NVDA, AVGO, MRVL（+ AMD/TSM作为参考，未在当前股票池）",
+        "caveat": "追踪半导体产能/需求周期，独立于单一公司基本面。",
+        "metrics": [
+            {"key": "foundry_utilization", "label": "Foundry Utilization", "weight": 0.25,
+             "prompt": "台积电/三星等领先晶圆代工厂产能利用率水平"},
+            {"key": "inventory_cycle_semi", "label": "Inventory Cycle", "weight": 0.20,
+             "prompt": "半导体产业链渠道库存周期"},
+            {"key": "ai_chip_demand", "label": "AI Chip Demand", "weight": 0.25,
+             "prompt": "AI芯片订单可见度、分配紧张程度"},
+            {"key": "data_center_growth", "label": "Data Center Growth", "weight": 0.20,
+             "prompt": "数据中心新建/扩建节奏"},
+            {"key": "lead_time", "label": "Lead Time", "weight": 0.10,
+             "prompt": "芯片供应链交付周期长短"},
+        ],
+    },
+    "china_policy": {
+        "label": "China Policy Monitor", "label_zh": "中国政策监测",
+        "applicable": [],  # 美股清单中无A股标的，此monitor主要服务A股报告
+        "applicable_note": "适用于所有A股持仓及中国敞口标的（详见A股早报）",
+        "caveat": "追踪中国宏观政策背景，非个股基本面，主要供A股投资参考。",
+        "metrics": [
+            {"key": "fiscal_stimulus", "label": "Fiscal Stimulus", "weight": 0.25,
+             "prompt": "中国财政刺激力度与落地节奏"},
+            {"key": "monetary_policy", "label": "Monetary Policy", "weight": 0.25,
+             "prompt": "央行货币政策取向（宽松/收紧，LPR/存准率方向）"},
+            {"key": "property_policy", "label": "Property Policy", "weight": 0.20,
+             "prompt": "房地产支持政策力度"},
+            {"key": "industrial_policy", "label": "Industrial Policy", "weight": 0.20,
+             "prompt": "半导体/新能源等战略行业产业政策支持力度"},
+            {"key": "us_china_relations", "label": "US-China Relations", "weight": 0.10,
+             "prompt": "中美关税/出口管制关系走向"},
+        ],
+    },
+    "energy_transition": {
+        "label": "Energy Transition Monitor", "label_zh": "能源转型监测",
+        "applicable": ["NEE", "GEV", "CEG"],
+        "applicable_note": "NEE, GEV, CEG（+ 皖能电力作为A股参考）",
+        "caveat": "追踪电力需求与电网投资周期，适用于电力/电网设备相关持仓。",
+        "metrics": [
+            {"key": "power_demand_growth", "label": "Power Demand Growth", "weight": 0.25,
+             "prompt": "整体电网负荷增长轨迹"},
+            {"key": "data_center_elec_demand", "label": "Data Center Electricity Demand", "weight": 0.25,
+             "prompt": "数据中心电力消耗增长预测"},
+            {"key": "grid_investment", "label": "Grid Investment", "weight": 0.25,
+             "prompt": "输配电网基础设施资本支出趋势"},
+            {"key": "energy_prices", "label": "Energy Prices", "weight": 0.25,
+             "prompt": "批发电价走势"},
+        ],
+    },
+}
+
+MONITOR_BANDS = [
+    (80, 101, "Strong Upcycle", "强劲上行周期"),
+    (65, 80,  "Healthy Recovery", "健康复苏"),
+    (50, 65,  "Neutral", "中性"),
+    (35, 50,  "Weakening", "走弱"),
+    (0,  35,  "Downcycle", "下行周期"),
+]
+
+
+def monitor_band(score: int) -> tuple:
+    for lo, hi, label_en, label_zh in MONITOR_BANDS:
+        if lo <= score < hi:
+            return label_en, label_zh
+    return MONITOR_BANDS[-1][2], MONITOR_BANDS[-1][3]
+
+
+SYSTEM_PROMPT_MONITOR = """你是行业周期监测分析师。任务：针对给定的具体指标，基于你的知识给出
+一个0-100的定性评分，并用1句话说明理由。这些指标本质上没有实时数字数据源，你的评分是
+基于行业认知的合理估计，不是精确数据。请明确、直接给出评分，不要说"无法判断"——
+即使信息不完整，也要基于已知趋势给出一个合理的中性偏向判断（如果真的没有把握，用50分
+表示中性，但仍需给出理由）。
+
+输出格式严格为：
+评分: <0-100的整数>
+理由: <一句话，不超过40字，简体中文>"""
+
+
+def get_monitor_metric_score(metric_prompt: str) -> tuple:
+    """调用Claude给单个监测指标打分。返回 (score, rationale)。"""
+    if not ANTHROPIC_KEY:
+        return 50, "AI未配置，中性占位"
+    try:
+        client = anthropic.Anthropic(api_key=ANTHROPIC_KEY)
+        msg = client.messages.create(
+            model="claude-sonnet-4-6", max_tokens=150,
+            system=SYSTEM_PROMPT_MONITOR,
+            messages=[{"role": "user", "content": f"请评估：{metric_prompt}"}],
+        )
+        text = msg.content[0].text
+        score_match = None
+        rationale = text.strip()
+        for line in text.split("\n"):
+            if line.strip().startswith("评分"):
+                digits = "".join(c for c in line if c.isdigit())
+                if digits:
+                    score_match = max(0, min(100, int(digits)))
+            elif line.strip().startswith("理由"):
+                rationale = line.split("理由:", 1)[-1].split("理由：", 1)[-1].strip()
+        return (score_match if score_match is not None else 50), rationale
+    except Exception as e:
+        logger.warning(f"监测指标打分失败: {e}")
+        return 50, f"AI调用失败: {e}"
+
+
+def compute_monitor_scores() -> dict:
+    """
+    为5个独立监测模块逐项打分。每个子指标单独调用一次Claude（共17次调用，
+    跨5个模块），全部是定性AI估计，非实时数据，已在每条结果里标注。
+    """
+    results = {}
+    for key, mon in MONITOR_DEFS.items():
+        logger.info(f"  监测模块: {mon['label']}...")
+        sub_results = []
+        weighted_total = 0
+        for m in mon["metrics"]:
+            score, rationale = get_monitor_metric_score(m["prompt"])
+            sub_results.append({
+                "key": m["key"], "label": m["label"], "weight": m["weight"],
+                "score": score, "rationale": rationale,
+            })
+            weighted_total += score * m["weight"]
+            time.sleep(1.5)
+        composite = round(weighted_total)
+        band_en, band_zh = monitor_band(composite)
+        results[key] = {
+            "label": mon["label"], "label_zh": mon["label_zh"],
+            "applicable": mon["applicable"], "applicable_note": mon["applicable_note"],
+            "caveat": mon["caveat"],
+            "composite": composite, "band": band_en, "band_zh": band_zh,
+            "metrics": sub_results,
+            "is_ai_estimate": True,
+        }
+        logger.info(f"    {mon['label']}: {composite}/100 ({band_en})")
+    return results
+
+
+# ════════════════════════════════════════════════════════════════════════════
+#  6. Dashboard JSON 导出
+# ════════════════════════════════════════════════════════════════════════════
+
+def export_dashboard_json(macro, macro_commentary, results, monitors=None, path="docs/dashboard_data.json"):
     def safe(v):
         if v is None:
             return None
@@ -859,6 +1046,7 @@ def export_dashboard_json(macro, macro_commentary, results, path="docs/dashboard
             "cpi_mom_pct": safe(macro.get("cpi_mom_pct")),
             "nfp_change_k": safe(macro.get("nfp_change_k")),
         },
+        "monitors": monitors or {},
         "stocks": [],
     }
 
@@ -924,7 +1112,7 @@ def export_dashboard_json(macro, macro_commentary, results, path="docs/dashboard
 
 
 # ════════════════════════════════════════════════════════════════════════════
-#  6. 主流程
+#  7. 主流程
 # ════════════════════════════════════════════════════════════════════════════
 
 def main():
@@ -973,8 +1161,15 @@ def main():
     _send(build_footer(results))
     logger.info(f"报告发送完成：宏观简报 + {len(results)}只个股 + 汇总 ✅")
 
+    monitors = {}
     try:
-        export_dashboard_json(macro, macro_commentary, results)
+        logger.info("开始计算5个独立监测模块（Storage/AI Capex/Semiconductor/China Policy/Energy Transition）...")
+        monitors = compute_monitor_scores()
+    except Exception as e:
+        logger.error(f"监测模块计算失败（不影响主报告，Dashboard将不显示Monitor板块): {e}")
+
+    try:
+        export_dashboard_json(macro, macro_commentary, results, monitors=monitors)
     except Exception as e:
         logger.error(f"Dashboard JSON导出失败（不影响Telegram报告已发送）: {e}")
 

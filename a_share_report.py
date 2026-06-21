@@ -425,6 +425,68 @@ def send_a_share_report():
 
     logger.info("A股早报发送完成 ✅")
 
+    try:
+        export_a_share_json(us_snap, china_commentary, macro_commentary, holding_results)
+    except Exception as e:
+        logger.error(f"A股Dashboard JSON导出失败（不影响Telegram报告已发送）: {e}")
+
+
+def export_a_share_json(us_snap, china_commentary, macro_commentary, holding_results, path="docs/a_share_data.json"):
+    """
+    把A股早报的真实数据导出为JSON，供Dashboard网页读取。
+    输出路径与美股的 dashboard_data.json 分开（a_share_data.json），
+    前端会分别fetch两个文件，在Dashboard里用"美股/A股"切换显示。
+    """
+    import json
+
+    def safe(v):
+        if v is None:
+            return None
+        if isinstance(v, (int, float, str, bool)):
+            return v
+        return str(v)
+
+    payload = {
+        "generated_at": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "generated_at_uk": datetime.now().strftime("%Y-%m-%d %H:%M"),
+        "macro_commentary": macro_commentary,
+        "china_commentary": china_commentary,
+        "us_overnight": {
+            "sp500_chg_pct": safe(us_snap.get("sp500_chg_pct")),
+            "nasdaq_chg_pct": safe(us_snap.get("nasdaq_chg_pct")),
+            "dow_chg_pct": safe(us_snap.get("dow_chg_pct")),
+            "vix": safe(us_snap.get("vix")),
+            "us10y": safe(us_snap.get("us10y")),
+            "dxy": safe(us_snap.get("dxy")),
+            "crude": safe(us_snap.get("crude")),
+        },
+        "holdings": [],
+        "watchlist": [],
+    }
+
+    holding_syms = {h["sym"] for h in A_SHARE_HOLDINGS}
+    watchlist_syms = {w["sym"] for w in A_SHARE_WATCHLIST}
+
+    for r in holding_results:
+        item, data, commentary = r["item"], r["data"], r["commentary"]
+        entry = {
+            "sym": item["sym"], "name": item["name"], "type": item["type"], "sector": item["sector"],
+            "available": data.get("available", False),
+            "price": safe(data.get("price")), "change_pct": safe(data.get("change_pct")),
+            "ma5": safe(data.get("ma5")), "ma20": safe(data.get("ma20")),
+            "rsi": safe(data.get("rsi")), "vol_ratio": safe(data.get("vol_ratio")),
+            "commentary": commentary,
+        }
+        if item["sym"] in holding_syms:
+            payload["holdings"].append(entry)
+        elif item["sym"] in watchlist_syms:
+            payload["watchlist"].append(entry)
+
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(payload, f, ensure_ascii=False, indent=2)
+    logger.info(f"A股Dashboard JSON导出完成: {path} ({len(payload['holdings'])}持仓 + {len(payload['watchlist'])}关注)")
+
 
 def main():
     send_a_share_report()
