@@ -60,11 +60,12 @@ A_SHARE_ALL = A_SHARE_HOLDINGS + A_SHARE_WATCHLIST
 
 
 # ════════════════════════════════════════════════════════════════════════════
-#  MFTSR 权重与阈值（与美股收盘完整报告共用）
+#  MFTSR 权重与阈值 — 精确对应 MFTSR_AI_Growth_Model_EN.xlsx 的权重体系
+#  （宏观20% / 基本面35% / 技术面20% / 情绪10% / 风险15%）
 # ════════════════════════════════════════════════════════════════════════════
 
-WEIGHTS = {"macro": 0.20, "fundamental": 0.25, "technical": 0.25, "sentiment": 0.15, "risk": 0.15}
-SCORE_BUY, SCORE_HOLD, ALERT_DIM = 70, 50, 30
+WEIGHTS = {"macro": 0.20, "fundamental": 0.35, "technical": 0.20, "sentiment": 0.10, "risk": 0.15}
+ALERT_DIM = 30
 
 
 # ════════════════════════════════════════════════════════════════════════════

@@ -1,57 +1,48 @@
 """
-market_report.py — MFTSR Alpha · GitHub Actions 版本 / Cloud Edition
+us_close_report.py — MFTSR Alpha · 美股收盘完整报告（v5）
 
-无需本地环境，由 GitHub Actions 在云端定时运行。
-融合五维评分模型：宏观(Macro) / 基本面(Fundamental) / 技术面(Technical) /
-情绪(Sentiment) / 风险(Risk)，规则打分 + Claude AI 文字解读，结果推送到 Telegram。
-每次运行发送两条独立消息：一条纯中文，一条纯英文。
+v5 更新（对齐 MFTSR_AI_Growth_Model_EN.xlsx 精确框架）：
+  1. 权重改为与Excel模型完全一致：宏观20% / 基本面35% / 技术面20% / 情绪10% / 风险15%
+  2. 每个维度内部子指标权重与打分规则严格对应Excel（见各 score_* 函数注释）
+  3. AI Industrial Policy / Geopolitical Score / CNN Fear & Greed / Market Liquidity
+     四项已从MFTSR评分中移除（按用户指示），其定性信息仅作为宏观简报的文字背景，
+     不计入任何维度评分。
+  4. MFTSR评分区间改为6档（与Excel Dashboard的Action guide一致）：
+     ≥75 积极加仓 / 65-75 买入 / 55-65 持有逢低买入 / 45-55 谨慎 / 35-45 减仓 / <35 大幅减仓
+  5. AI解读改为5个独立段落（基本面/技术面/情绪/风险/宏观影响各一段），
+     每段单独标注该维度评分。
+  6. 频次改为每周一、三、五（原每个交易日），UK时间21:30不变。
+  7. 新增 export_dashboard_json()：把当次真实价格/评分/AI解读导出为JSON，
+     提交到仓库 docs/ 目录，供 GitHub Pages 托管的Dashboard网页读取。
 
-宏观维度覆盖（Macro dimension covers）：
-  经济数据 Economic data    — CPI / NFP (非农) / PMI
-  美联储动态 Fed policy     — Fed Funds Rate, FOMC stance
-  地缘政治 Geopolitics      — Iran/Middle East tension, tariffs (via AI commentary)
-  VIX 水平及含义 VIX regime — explicit interpretation layer, not just the number
-  油价/国债收益率 Oil & Yields — WTI crude, US10Y, yield curve
-
-环境变量（在 GitHub Secrets 中配置）：
+环境变量：
     ANTHROPIC_KEY   — Claude API key
     TELEGRAM_TOKEN  — Telegram bot token
-    CHAT_ID         — Telegram chat id（群组为负数）
-    FRED_API_KEY    — (可选) FRED API key，用于 CPI/NFP/PMI/Fed Funds Rate 数据
-                       免费申请：https://fred.stlouisfed.org/docs/api/api_key.html
-                       若未提供，宏观经济数据部分会跳过，仅用市场化指标(VIX/DXY/油价等)
-
-可选环境变量（在 workflow yml 中通过 env 传入，无需写入 Secrets）：
-    REPORT_TYPE     — premarket | midday | close
-    WATCHLIST       — 逗号分隔的股票代码
+    CHAT_ID         — Telegram chat id
+    FRED_API_KEY    — (可选) 用于CPI/非农/失业率/Fed利率官方数据
 """
 
 import os
 import sys
 import time
+import json
 import logging
-from datetime import datetime, timezone
+from datetime import datetime
 
 import requests
 import numpy as np
 import yfinance as yf
 import anthropic
 
-from shared_config import WEIGHTS, SCORE_BUY, SCORE_HOLD, ALERT_DIM, US_WATCHLIST as DEFAULT_WATCHLIST
+from shared_config import WEIGHTS, US_WATCHLIST as DEFAULT_WATCHLIST
 
-# ─── 日志 ──────────────────────────────────────────────────────────────────
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("mftsr")
 
-# ─── 环境变量 / 配置 ──────────────────────────────────────────────────────────
 ANTHROPIC_KEY  = os.environ.get("ANTHROPIC_KEY", "")
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "")
 CHAT_ID        = os.environ.get("CHAT_ID", "")
 FRED_API_KEY   = os.environ.get("FRED_API_KEY", "")
-REPORT_TYPE    = os.environ.get("REPORT_TYPE", "close")   # premarket | midday | close
-MAX_TICKERS    = int(os.environ.get("MAX_TICKERS", "15")) # 现在每天只发一次，默认展示全部15只
-
-# ── 股票池：从 shared_config.py 引入，可通过环境变量 WATCHLIST 覆盖 ──────────
 
 _watchlist_env = os.environ.get("WATCHLIST", "")
 if _watchlist_env.strip():
@@ -60,28 +51,40 @@ if _watchlist_env.strip():
 else:
     WATCHLIST = DEFAULT_WATCHLIST
 
-# MFTSR 五维权重 — 从 shared_config.py 引入（WEIGHTS, SCORE_BUY, SCORE_HOLD, ALERT_DIM）
+SCORE_BANDS = [
+    (75, 101, "强烈买入", "积极加仓", "🟢🟢"),
+    (65, 75,  "买入",     "买入",     "🟢"),
+    (55, 65,  "持有偏多", "持有/逢低买入", "🟡"),
+    (45, 55,  "谨慎",     "谨慎",     "🟠"),
+    (35, 45,  "减仓",     "减仓",     "🔴"),
+    (0,  35,  "强烈卖出", "大幅减仓", "🔴🔴"),
+]
+ALERT_DIM = 30
 
-REPORT_LABELS_ZH = {
-    "premarket": "🌅 盘前分析 PRE-MARKET",
-    "midday":    "☀️ 盘中快报 MIDDAY PULSE",
-    "close":     "🌆 尾盘总结 CLOSE SUMMARY",
-}
-REPORT_LABELS_EN = {
-    "premarket": "🌅 Pre-Market Briefing",
-    "midday":    "☀️ Midday Pulse",
-    "close":     "🌆 Close Summary",
-}
+
+def score_band(score: int) -> tuple:
+    for lo, hi, label, action, emoji in SCORE_BANDS:
+        if lo <= score < hi:
+            return label, action, emoji
+    return SCORE_BANDS[-1][2], SCORE_BANDS[-1][3], SCORE_BANDS[-1][4]
+
+
+SCORE_LEGEND_ZH = (
+    "📐 <b>MFTSR评分标准</b>（与Excel模型Action Guide一致）\n"
+    "  🟢🟢 ≥75分    强烈买入 → 积极加仓\n"
+    "  🟢   65-75分  买入    → 买入\n"
+    "  🟡   55-65分  持有偏多 → 持有/逢低买入\n"
+    "  🟠   45-55分  谨慎    → 谨慎\n"
+    "  🔴   35-45分  减仓    → 减仓\n"
+    "  🔴🔴 <35分    强烈卖出 → 大幅减仓"
+)
 
 
 # ════════════════════════════════════════════════════════════════════════════
-#  1. 市场数据抓取 — Market Data
+#  1. 市场数据抓取
 # ════════════════════════════════════════════════════════════════════════════
 
 def get_market_data(sym: str) -> dict:
-    """抓取单只股票的价格、技术指标、基本面数据。
-    对新上市（价格历史<200天）的股票，长周期指标(MA200等)会标记为'N/A'而非用不足数据硬算。
-    """
     try:
         ticker = yf.Ticker(sym)
         hist = ticker.history(period="90d", interval="1d")
@@ -97,11 +100,22 @@ def get_market_data(sym: str) -> dict:
         hi_52w = float(close.tail(252).max())
         lo_52w = float(close.tail(252).min())
 
-        # ── 长周期均线：数据不足时显式标记，而非用过短窗口硬算出误导性数字 ──
+        ma5   = float(close.rolling(5).mean().iloc[-1])   if n_days >= 5   else None
         ma20  = float(close.rolling(20).mean().iloc[-1])  if n_days >= 20  else None
         ma50  = float(close.rolling(50).mean().iloc[-1])  if n_days >= 50  else None
         ma200 = float(close.rolling(200).mean().iloc[-1]) if n_days >= 200 else None
-        thin_history = n_days < 50   # 上市不足50个交易日，技术面评分需调整
+        thin_history = n_days < 50
+
+        ma_cross = None
+        if n_days >= 21:
+            ma5_series  = close.rolling(5).mean()
+            ma20_series = close.rolling(20).mean()
+            today_diff  = ma5_series.iloc[-1] - ma20_series.iloc[-1]
+            yest_diff   = ma5_series.iloc[-2] - ma20_series.iloc[-2]
+            if yest_diff <= 0 and today_diff > 0:
+                ma_cross = "golden"
+            elif yest_diff >= 0 and today_diff < 0:
+                ma_cross = "death"
 
         delta = close.diff()
         gain  = delta.clip(lower=0).rolling(14).mean()
@@ -109,91 +123,107 @@ def get_market_data(sym: str) -> dict:
         rs    = gain / loss.replace(0, np.nan)
         rsi   = float(100 - (100 / (1 + rs)).iloc[-1]) if n_days >= 14 and not rs.isna().iloc[-1] else None
 
-        ema12 = close.ewm(span=12, adjust=False).mean()
-        ema26 = close.ewm(span=26, adjust=False).mean()
-        macd_line   = ema12 - ema26
-        signal_line = macd_line.ewm(span=9, adjust=False).mean()
-        macd_hist   = float((macd_line - signal_line).iloc[-1])
-
-        avg_vol   = float(volume.rolling(20).mean().iloc[-1]) if len(volume) >= 20 else float(volume.mean())
+        avg_vol   = float(volume.rolling(20).mean().iloc[-1]) if n_days >= 20 else float(volume.mean())
         vol_ratio = float(volume.iloc[-1]) / avg_vol if avg_vol > 0 else 1.0
 
-        bb_mid = close.rolling(20).mean()
-        bb_std = close.rolling(20).std()
-        bb_up  = float((bb_mid + 2 * bb_std).iloc[-1])
-        bb_low = float((bb_mid - 2 * bb_std).iloc[-1])
-        bb_pct = (latest - bb_low) / (bb_up - bb_low) * 100 if (bb_up - bb_low) > 0 else 50.0
+        rel_strength_3m = None
+        try:
+            qqq_hist = yf.Ticker("QQQ").history(period="90d", interval="1d")
+            if len(qqq_hist) >= 60 and n_days >= 60:
+                stock_3m_ret = (close.iloc[-1] / close.iloc[-60] - 1) * 100
+                qqq_3m_ret = (qqq_hist["Close"].iloc[-1] / qqq_hist["Close"].iloc[-60] - 1) * 100
+                rel_strength_3m = float(stock_3m_ret - qqq_3m_ret)
+        except Exception:
+            pass
+
+        vol_30d_annualized = None
+        if n_days >= 31:
+            daily_returns = close.pct_change().dropna().tail(30)
+            vol_30d_annualized = float(daily_returns.std() * np.sqrt(252) * 100)
 
         info = ticker.info
-        pe_ratio   = info.get("trailingPE") or info.get("forwardPE") or 0
-        rev_growth = (info.get("revenueGrowth") or 0) * 100
-        eps_growth = (info.get("earningsGrowth") or 0) * 100
-        fcf_yield  = 0
+        pe_ratio      = info.get("trailingPE") or 0
+        forward_pe    = info.get("forwardPE") or 0
+        peg_ratio     = info.get("pegRatio") or info.get("trailingPegRatio") or 0
+        rev_growth    = (info.get("revenueGrowth") or 0) * 100
+        eps_growth    = (info.get("earningsGrowth") or 0) * 100
+        gross_margin  = (info.get("grossMargins") or 0) * 100
+        fcf_yield     = 0
         if info.get("freeCashflow") and info.get("marketCap"):
             fcf_yield = info["freeCashflow"] / info["marketCap"] * 100
-        short_ratio  = info.get("shortRatio") or 0
-        inst_pct     = (info.get("heldPercentInstitutions") or 0) * 100
-        market_cap_b = (info.get("marketCap") or 0) / 1e9
-        beta         = info.get("beta") or 1.0
-        analyst_rec  = info.get("recommendationMean") or 3.0
-        target_price = info.get("targetMeanPrice") or latest
-        upside       = (target_price - latest) / latest * 100 if latest > 0 else 0
+        fcf_margin = 0
+        if info.get("freeCashflow") and info.get("totalRevenue"):
+            fcf_margin = info["freeCashflow"] / info["totalRevenue"] * 100
+        short_ratio   = info.get("shortRatio") or 0
+        inst_pct      = (info.get("heldPercentInstitutions") or 0) * 100
+        market_cap_b  = (info.get("marketCap") or 0) / 1e9
+        beta          = info.get("beta") or 1.0
+        analyst_rec   = info.get("recommendationMean") or 3.0
+        target_price  = info.get("targetMeanPrice") or latest
+        target_high   = info.get("targetHighPrice") or target_price
+        target_low    = info.get("targetLowPrice") or target_price
+        num_analysts  = info.get("numberOfAnalystOpinions") or 0
+        upside        = (target_price - latest) / latest * 100 if latest > 0 else 0
+
+        rev_cagr_proxy = rev_growth
+        profit_cagr_proxy = eps_growth
 
         return {
             "sym": sym, "price": round(latest, 2), "change_pct": round(change_pct, 2),
             "hi_52w": round(hi_52w, 2), "lo_52w": round(lo_52w, 2),
             "pct_from_52w_hi": round((latest / hi_52w - 1) * 100, 1) if hi_52w else 0,
+            "ma5": round(ma5, 2) if ma5 is not None else "N/A",
             "ma20": round(ma20, 2) if ma20 is not None else "N/A",
             "ma50": round(ma50, 2) if ma50 is not None else "N/A",
             "ma200": round(ma200, 2) if ma200 is not None else "N/A",
             "above_ma20": (latest > ma20) if ma20 is not None else None,
             "above_ma50": (latest > ma50) if ma50 is not None else None,
             "above_ma200": (latest > ma200) if ma200 is not None else None,
+            "ma_cross": ma_cross,
             "rsi": round(rsi, 1) if rsi is not None else "N/A",
-            "macd_hist": round(macd_hist, 3), "macd_bullish": macd_hist > 0,
-            "vol_ratio": round(vol_ratio, 2), "bb_pct": round(bb_pct, 1),
+            "vol_ratio": round(vol_ratio, 2),
+            "rel_strength_3m": round(rel_strength_3m, 1) if rel_strength_3m is not None else "N/A",
+            "vol_30d_annualized": round(vol_30d_annualized, 1) if vol_30d_annualized is not None else "N/A",
             "pe_ratio": round(pe_ratio, 1) if pe_ratio else "N/A",
+            "forward_pe": round(forward_pe, 1) if forward_pe else "N/A",
+            "peg_ratio": round(peg_ratio, 2) if peg_ratio else "N/A",
             "rev_growth": round(rev_growth, 1), "eps_growth": round(eps_growth, 1),
-            "fcf_yield": round(fcf_yield, 1), "market_cap_b": round(market_cap_b, 1),
+            "rev_cagr_proxy": round(rev_cagr_proxy, 1), "profit_cagr_proxy": round(profit_cagr_proxy, 1),
+            "gross_margin": round(gross_margin, 1), "fcf_yield": round(fcf_yield, 1),
+            "fcf_margin": round(fcf_margin, 1),
+            "market_cap_b": round(market_cap_b, 1),
             "beta": round(beta, 2), "short_ratio": round(short_ratio, 1),
             "inst_pct": round(inst_pct, 1), "analyst_rec": round(analyst_rec, 2),
-            "target_price": round(target_price, 2), "upside": round(upside, 1),
+            "target_price": round(target_price, 2), "target_high": round(target_high, 2),
+            "target_low": round(target_low, 2), "num_analysts": num_analysts,
+            "upside": round(upside, 1),
             "thin_history": thin_history, "trading_days": n_days,
         }
     except Exception as e:
-        logger.error(f"{sym} 数据抓取失败 / data fetch failed: {e}")
+        logger.error(f"{sym} 数据抓取失败: {e}")
         return _fallback(sym)
 
 
 def _fallback(sym: str) -> dict:
     return {
         "sym": sym, "price": 0, "change_pct": 0, "hi_52w": 0, "lo_52w": 0, "pct_from_52w_hi": 0,
-        "ma20": "N/A", "ma50": "N/A", "ma200": "N/A",
-        "above_ma20": None, "above_ma50": None, "above_ma200": None,
-        "rsi": "N/A", "macd_hist": 0, "macd_bullish": False, "vol_ratio": 1, "bb_pct": 50,
-        "pe_ratio": "N/A", "rev_growth": 0, "eps_growth": 0, "fcf_yield": 0,
+        "ma5": "N/A", "ma20": "N/A", "ma50": "N/A", "ma200": "N/A",
+        "above_ma20": None, "above_ma50": None, "above_ma200": None, "ma_cross": None,
+        "rsi": "N/A", "vol_ratio": 1, "rel_strength_3m": "N/A", "vol_30d_annualized": "N/A",
+        "pe_ratio": "N/A", "forward_pe": "N/A", "peg_ratio": "N/A",
+        "rev_growth": 0, "eps_growth": 0, "rev_cagr_proxy": 0, "profit_cagr_proxy": 0,
+        "gross_margin": 0, "fcf_yield": 0, "fcf_margin": 0,
         "market_cap_b": 0, "beta": 1.0, "short_ratio": 0, "inst_pct": 0,
-        "analyst_rec": 3, "target_price": 0, "upside": 0,
+        "analyst_rec": 3, "target_price": 0, "target_high": 0, "target_low": 0,
+        "num_analysts": 0, "upside": 0,
         "thin_history": True, "trading_days": 0, "error": True,
     }
 
 
-# ── 宏观市场化指标：VIX / DXY / 美债 / 油价 / 黄金 / 大盘 ──────────────────────
-
 def get_macro_market_snapshot() -> dict:
-    """
-    市场化宏观指标（无需额外API key，全部来自 yfinance）：
-    VIX, DXY, US10Y, WTI原油, 黄金, 标普500, 纳指
-    """
     tickers_map = {
-        "vix":    "^VIX",
-        "dxy":    "DX-Y.NYB",
-        "us10y":  "^TNX",     # 10年期美债收益率
-        "us2y":   "^IRX",     # 13周国库券，作短端利率代理
-        "crude":  "CL=F",     # WTI原油期货
-        "gold":   "GC=F",
-        "sp500":  "^GSPC",
-        "nasdaq": "^IXIC",
+        "vix": "^VIX", "dxy": "DX-Y.NYB", "us10y": "^TNX", "us2y": "^IRX",
+        "crude": "CL=F", "gold": "GC=F", "sp500": "^GSPC", "nasdaq": "^IXIC",
     }
     result = {}
     for key, sym in tickers_map.items():
@@ -206,347 +236,327 @@ def get_macro_market_snapshot() -> dict:
                 result[f"{key}_chg_pct"] = round((latest - prev) / prev * 100, 2) if prev else 0
         except Exception:
             result[key] = None
-
-    if result.get("us10y") is not None:
-        # 10Y-2Y 利差的简化代理 (此处用历史平均近似值作偏离参考，非精确期限利差)
-        result["yield_spread"] = round(result["us10y"] - 4.5, 2)
-
     return result
 
 
-# ── 宏观经济数据：CPI / NFP / PMI / Fed Funds Rate (通过 FRED API，可选) ──────
-
 FRED_SERIES = {
-    "cpi_yoy":       "CPIAUCSL",   # CPI 城镇消费者价格指数（计算环比需两期数据）
-    "core_pce_yoy":  "PCEPILFE",   # 核心PCE（Fed更看重的通胀指标）
-    "nfp":           "PAYEMS",     # 非农就业人数（千人，需计算环比变化）
-    "unemployment":  "UNRATE",     # 失业率
-    "fed_funds":     "FEDFUNDS",   # 联邦基金利率
+    "cpi_yoy": "CPIAUCSL", "core_pce_yoy": "PCEPILFE",
+    "nfp": "PAYEMS", "unemployment": "UNRATE", "fed_funds": "FEDFUNDS",
 }
 
 
 def _fred_latest_two(series_id: str) -> tuple:
-    """从 FRED 获取某个序列最近两期数据，返回 (最新值, 上一期值, 日期)。"""
     if not FRED_API_KEY:
         return None, None, None
     try:
         url = "https://api.stlouisfed.org/fred/series/observations"
-        params = {
-            "series_id": series_id, "api_key": FRED_API_KEY,
-            "file_type": "json", "sort_order": "desc", "limit": 14,
-        }
+        params = {"series_id": series_id, "api_key": FRED_API_KEY,
+                   "file_type": "json", "sort_order": "desc", "limit": 14}
         resp = requests.get(url, params=params, timeout=10)
-        data = resp.json()
-        obs = [o for o in data.get("observations", []) if o["value"] not in (".", "")]
+        obs = [o for o in resp.json().get("observations", []) if o["value"] not in (".", "")]
         if len(obs) < 2:
             return None, None, None
-        latest, prior = obs[0], obs[1]
-        return float(latest["value"]), float(prior["value"]), latest["date"]
+        return float(obs[0]["value"]), float(obs[1]["value"]), obs[0]["date"]
     except Exception as e:
-        logger.warning(f"FRED 数据获取失败 {series_id}: {e}")
+        logger.warning(f"FRED获取失败 {series_id}: {e}")
         return None, None, None
 
 
 def get_macro_economic_data() -> dict:
-    """
-    抓取 CPI / NFP / 失业率 / Fed Funds Rate。
-    若未配置 FRED_API_KEY，返回空字典（AI解读时会基于市场化指标做定性判断）。
-    """
     if not FRED_API_KEY:
-        logger.info("未配置 FRED_API_KEY，跳过CPI/NFP宏观经济数据抓取（不影响其他维度）")
         return {}
-
     econ = {}
     try:
-        cpi_now, cpi_prev, cpi_date = _fred_latest_two(FRED_SERIES["cpi_yoy"])
+        cpi_now, cpi_prev, _ = _fred_latest_two(FRED_SERIES["cpi_yoy"])
         if cpi_now and cpi_prev:
             econ["cpi_mom_pct"] = round((cpi_now - cpi_prev) / cpi_prev * 100, 2)
-            econ["cpi_date"] = cpi_date
-
-        pce_now, pce_prev, pce_date = _fred_latest_two(FRED_SERIES["core_pce_yoy"])
+        pce_now, pce_prev, _ = _fred_latest_two(FRED_SERIES["core_pce_yoy"])
         if pce_now and pce_prev:
             econ["core_pce_mom_pct"] = round((pce_now - pce_prev) / pce_prev * 100, 2)
-
-        nfp_now, nfp_prev, nfp_date = _fred_latest_two(FRED_SERIES["nfp"])
+        nfp_now, nfp_prev, _ = _fred_latest_two(FRED_SERIES["nfp"])
         if nfp_now and nfp_prev:
             econ["nfp_change_k"] = round(nfp_now - nfp_prev, 0)
-            econ["nfp_date"] = nfp_date
-
         unemp_now, unemp_prev, _ = _fred_latest_two(FRED_SERIES["unemployment"])
         if unemp_now is not None:
             econ["unemployment_rate"] = unemp_now
             econ["unemployment_chg"] = round(unemp_now - (unemp_prev or unemp_now), 2)
-
-        fed_now, fed_prev, fed_date = _fred_latest_two(FRED_SERIES["fed_funds"])
+        fed_now, fed_prev, _ = _fred_latest_two(FRED_SERIES["fed_funds"])
         if fed_now is not None:
             econ["fed_funds_rate"] = fed_now
             econ["fed_funds_chg"] = round(fed_now - (fed_prev or fed_now), 2)
-
     except Exception as e:
         logger.warning(f"宏观经济数据处理出错: {e}")
-
     return econ
 
 
 def get_macro_snapshot() -> dict:
-    """合并市场化指标 + 经济数据，构成完整宏观快照。"""
     snap = get_macro_market_snapshot()
     snap.update(get_macro_economic_data())
     return snap
 
 
-def vix_regime(vix) -> tuple:
-    """
-    VIX 水平含义解读层 — 不只是数字，给出明确的市场情绪分类。
-    返回 (中文描述, 英文描述, 风险调整分数)
-    """
-    if vix is None:
-        return "数据不可用", "Data unavailable", 0
-    if vix < 13:
-        return ("极度平静 — 可能隐含市场自满情绪", "Extreme calm — may signal complacency", -3)
-    if vix < 17:
-        return ("低恐慌 — 风险偏好健康", "Low fear — healthy risk appetite", 8)
-    if vix < 22:
-        return ("正常波动区间", "Normal volatility range", 3)
-    if vix < 28:
-        return ("波动加剧 — 市场开始定价不确定性", "Elevated — market pricing in uncertainty", -8)
-    if vix < 35:
-        return ("高度紧张 — 避险情绪主导", "High stress — risk-off dominant", -15)
-    return ("极端恐慌 — 类似危机模式", "Extreme panic — crisis-like conditions", -22)
+def vix_regime(vix) -> str:
+    if vix is None: return "数据不可用"
+    if vix < 13:  return "极度平静，警惕自满情绪"
+    if vix < 17:  return "低恐慌，风险偏好健康"
+    if vix < 22:  return "正常波动区间"
+    if vix < 28:  return "波动加剧，市场定价不确定性"
+    if vix < 35:  return "高度紧张，避险主导"
+    return "极端恐慌，类似危机模式"
 
 
 # ════════════════════════════════════════════════════════════════════════════
-#  2. MFTSR 五维规则评分 — Scoring Engine
+#  2. MFTSR 五维评分 — 精确对应 MFTSR_AI_Growth_Model_EN.xlsx
 # ════════════════════════════════════════════════════════════════════════════
 
 def score_macro(macro: dict) -> tuple:
-    """
-    宏观维度评分，综合：
-      - 经济数据 CPI/NFP/失业率方向
-      - 美联储动态 Fed Funds Rate 变化
-      - VIX 水平及含义（解读层，非仅数字）
-      - 美元指数 DXY
-      - 油价 WTI 走势
-      - 美债收益率 US10Y
-      - 大盘（纳指）动量
-    （地缘政治/关税风险定性部分在 AI commentary 中处理，规则引擎无法量化突发新闻）
-    """
-    score, sig = 50, []
+    """宏观维度，20%权重。子指标：Fed Funds 18% | 10Y 18% | Core PCE 10% |
+    Unemployment 10% | NFP 10% | ISM PMI 10% | DXY 5% | WTI 12% | WTI chg 7%。
+    AI Policy / Geopolitics 已移除（仅作宏观简报文字背景，不计分）。"""
+    sub_scores = []
 
-    # ── VIX 解读层 ──────────────────────────────────────
-    vix = macro.get("vix")
-    if vix is not None:
-        desc_zh, desc_en, adj = vix_regime(vix)
-        score += adj
-        sig.append(f"VIX={vix:.1f} → {desc_zh} ({desc_en})")
-
-    # ── 美联储动态 Fed Funds Rate ───────────────────────
-    fed_chg = macro.get("fed_funds_chg")
     fed_rate = macro.get("fed_funds_rate")
     if fed_rate is not None:
-        if fed_chg and fed_chg > 0.05:
-            score -= 10; sig.append(f"美联储加息中 Fed={fed_rate:.2f}% (+{fed_chg:.2f}) 鹰派压制估值")
-        elif fed_chg and fed_chg < -0.05:
-            score += 10; sig.append(f"美联储降息中 Fed={fed_rate:.2f}% ({fed_chg:.2f}) 利好风险资产")
-        else:
-            sig.append(f"Fed Funds Rate维持 {fed_rate:.2f}%，政策按兵不动")
+        s = 90 if fed_rate <= 3 else 70 if fed_rate <= 4 else 45 if fed_rate <= 5 else 20
+        sub_scores.append(("Fed Funds Rate", 0.18, s, f"{fed_rate:.2f}%"))
+    else:
+        sub_scores.append(("Fed Funds Rate", 0.18, 50, "数据缺失(需FRED API)"))
 
-    # ── 通胀数据 CPI / 核心PCE ──────────────────────────
-    cpi_mom = macro.get("cpi_mom_pct")
-    if cpi_mom is not None:
-        if cpi_mom > 0.4:
-            score -= 8; sig.append(f"CPI环比+{cpi_mom:.2f}% 通胀升温，加息压力增加")
-        elif cpi_mom < 0.1:
-            score += 6; sig.append(f"CPI环比+{cpi_mom:.2f}% 通胀降温，利好降息预期")
-        else:
-            sig.append(f"CPI环比+{cpi_mom:.2f}% 温和")
+    us10y = macro.get("us10y")
+    if us10y is not None:
+        s = 90 if us10y <= 3.5 else 70 if us10y <= 4.5 else 45 if us10y <= 5 else 20
+        sub_scores.append(("10Y Treasury Yield", 0.18, s, f"{us10y:.2f}%"))
+    else:
+        sub_scores.append(("10Y Treasury Yield", 0.18, 50, "数据缺失"))
 
-    # ── 就业数据 NFP / 失业率 ───────────────────────────
-    nfp_chg = macro.get("nfp_change_k")
-    if nfp_chg is not None:
-        if nfp_chg > 200:
-            sig.append(f"非农新增{nfp_chg:.0f}千人，劳动力市场强劲（可能延后降息）")
-        elif nfp_chg < 100:
-            score -= 5; sig.append(f"非农新增仅{nfp_chg:.0f}千人，就业市场降温")
+    core_pce = macro.get("core_pce_mom_pct")
+    if core_pce is not None:
+        s = 100 if core_pce <= 2.5 else 75 if core_pce <= 3 else 45 if core_pce <= 4 else 20
+        sub_scores.append(("Core PCE YoY", 0.10, s, f"{core_pce:+.2f}%"))
+    else:
+        sub_scores.append(("Core PCE YoY", 0.10, 50, "数据缺失(需FRED API)"))
 
     unemp = macro.get("unemployment_rate")
     if unemp is not None:
-        chg = macro.get("unemployment_chg", 0)
-        if chg > 0.2:
-            score -= 6; sig.append(f"失业率{unemp:.1f}% 上升中 ⚠️ 经济放缓信号")
+        s = 90 if 3.8 <= unemp <= 5 else 65 if unemp < 3.8 else 55 if unemp <= 6 else 25
+        sub_scores.append(("Unemployment Rate", 0.10, s, f"{unemp:.1f}%"))
+    else:
+        sub_scores.append(("Unemployment Rate", 0.10, 50, "数据缺失"))
 
-    # ── 美元指数 DXY ────────────────────────────────────
-    dxy_chg = macro.get("dxy_chg_pct")
+    nfp = macro.get("nfp_change_k")
+    if nfp is not None:
+        s = 90 if 100 <= nfp <= 250 else 55 if 0 <= nfp < 100 else 60 if nfp > 250 else 20
+        sub_scores.append(("Nonfarm Payroll Change", 0.10, s, f"{nfp:+.0f}k"))
+    else:
+        sub_scores.append(("Nonfarm Payroll Change", 0.10, 50, "数据缺失"))
+
+    sub_scores.append(("ISM Manufacturing PMI", 0.10, 50, "中性占位(无免费实时源，需手动更新)"))
+
     dxy = macro.get("dxy")
-    if dxy_chg is not None:
-        if dxy_chg > 0.5:   score -= 6; sig.append(f"美元走强 DXY={dxy} (+{dxy_chg:.2f}%) 压制风险资产")
-        elif dxy_chg < -0.5: score += 6; sig.append(f"美元走弱 DXY={dxy} ({dxy_chg:.2f}%) 利好风险资产")
+    if dxy is not None:
+        s = 85 if dxy <= 102 else 65 if dxy <= 108 else 40
+        sub_scores.append(("US Dollar Index (DXY)", 0.05, s, f"{dxy:.1f}"))
+    else:
+        sub_scores.append(("US Dollar Index (DXY)", 0.05, 50, "数据缺失"))
 
-    # ── 油价 WTI ────────────────────────────────────────
-    crude_chg = macro.get("crude_chg_pct")
     crude = macro.get("crude")
+    if crude is not None:
+        s = 90 if 55 <= crude <= 80 else 60 if 80 < crude <= 95 else 30
+        sub_scores.append(("WTI Oil Price", 0.12, s, f"${crude:.1f}"))
+    else:
+        sub_scores.append(("WTI Oil Price", 0.12, 50, "数据缺失"))
+
+    crude_chg = macro.get("crude_chg_pct")
     if crude_chg is not None:
-        if crude_chg > 3:
-            score -= 5; sig.append(f"油价跳涨 WTI=${crude} (+{crude_chg:.2f}%) 地缘风险/通胀压力")
-        elif crude_chg < -3:
-            score += 3; sig.append(f"油价回落 WTI=${crude} ({crude_chg:.2f}%) 通胀压力缓解")
-        else:
-            sig.append(f"WTI原油 ${crude} ({crude_chg:+.2f}%)")
+        s = 90 if abs(crude_chg) <= 5 else 60 if abs(crude_chg) <= 12 else 25
+        sub_scores.append(("WTI 1M % Change", 0.07, s, f"{crude_chg:+.2f}%"))
+    else:
+        sub_scores.append(("WTI 1M % Change", 0.07, 50, "数据缺失"))
 
-    # ── 美债收益率 US10Y ────────────────────────────────
-    us10y = macro.get("us10y")
-    if us10y is not None:
-        sig.append(f"US10Y={us10y:.2f}%")
-        spread = macro.get("yield_spread")
-        if spread is not None and spread < -0.3:
-            score -= 8; sig.append(f"收益率曲线倒挂{spread:.2f}% ⚠️ 衰退预警信号")
-
-    # ── 大盘动量（纳指）──────────────────────────────────
-    nq_chg = macro.get("nasdaq_chg_pct")
-    if nq_chg is not None:
-        if nq_chg > 0.5:    score += 5; sig.append(f"纳指+{nq_chg:.2f}% 风险偏好积极")
-        elif nq_chg < -1.0: score -= 8; sig.append(f"纳指{nq_chg:.2f}% 避险情绪升温")
-
-    return max(0, min(100, score)), sig[:7]
+    weighted_total = sum(w * s for _, w, s, _ in sub_scores)
+    return round(weighted_total), sub_scores
 
 
 def score_fundamental(md: dict) -> tuple:
-    score, sig = 50, []
-    pe = md.get("pe_ratio")
-    if pe and pe != "N/A":
-        if pe < 15:   score += 12; sig.append(f"PE={pe}x 估值便宜")
-        elif pe < 25: score += 6;  sig.append(f"PE={pe}x 估值合理")
-        elif pe < 40: score -= 3;  sig.append(f"PE={pe}x 估值偏高")
-        else:         score -= 10; sig.append(f"PE={pe}x 估值昂贵")
+    """基本面维度，35%权重。Growth(40%): RevCAGR 20%/ProfitCAGR 20%.
+    Earnings quality(35%): FCFMargin 12.25%/GrossMargin 10.5%/EPSGrowth 12.25%.
+    Valuation(25%): ForwardPE 7.5%/PEG 10%/FCFYield 7.5%."""
+    sub_scores = []
 
-    rev = md.get("rev_growth", 0)
-    if rev > 25:    score += 14; sig.append(f"营收增速+{rev:.1f}% 超高增长")
-    elif rev > 10:  score += 7;  sig.append(f"营收增速+{rev:.1f}% 健康")
-    elif rev > 0:   score += 2;  sig.append(f"营收增速+{rev:.1f}% 温和正增长")
-    elif rev > -5:  score -= 6;  sig.append(f"营收增速{rev:.1f}% 轻微负增长")
-    else:           score -= 14; sig.append(f"营收下滑{rev:.1f}% ⚠️")
+    rev_cagr = md.get("rev_cagr_proxy", 0)
+    s = 100 if rev_cagr >= 30 else 85 if rev_cagr >= 20 else 65 if rev_cagr >= 10 else 30
+    sub_scores.append(("Revenue Growth (YoY代理3Y CAGR)", 0.20, s, f"{rev_cagr:+.1f}%"))
 
-    eps = md.get("eps_growth", 0)
-    if eps > 20:    score += 8; sig.append(f"EPS增速+{eps:.1f}%")
-    elif eps < -10: score -= 10; sig.append(f"EPS下滑{eps:.1f}% ⚠️")
+    profit_cagr = md.get("profit_cagr_proxy", 0)
+    s = 100 if profit_cagr >= 30 else 85 if profit_cagr >= 20 else 65 if profit_cagr >= 10 else 30
+    sub_scores.append(("Profit Growth (YoY代理3Y CAGR)", 0.20, s, f"{profit_cagr:+.1f}%"))
 
-    fcf = md.get("fcf_yield", 0)
-    if fcf > 5: score += 8; sig.append(f"FCF收益率{fcf:.1f}% 优秀")
-    elif fcf < 0: score -= 6; sig.append(f"FCF为负{fcf:.1f}%")
+    fcf_margin = md.get("fcf_margin", 0)
+    s = 100 if fcf_margin >= 25 else 80 if fcf_margin >= 15 else 55 if fcf_margin >= 5 else 25
+    sub_scores.append(("FCF Margin", 0.1225, s, f"{fcf_margin:.1f}%"))
 
-    upside = md.get("upside", 0)
-    if upside > 20: score += 6; sig.append(f"目标价上行空间+{upside:.1f}%")
-    elif upside < -10: score -= 6; sig.append(f"目标价低于现价{upside:.1f}%")
+    gross_margin = md.get("gross_margin", 0)
+    s = 100 if gross_margin >= 70 else 80 if gross_margin >= 50 else 55 if gross_margin >= 30 else 25
+    sub_scores.append(("Gross Margin", 0.105, s, f"{gross_margin:.1f}%"))
 
-    return max(0, min(100, score)), sig[:4]
+    eps_growth = md.get("eps_growth", 0)
+    s = 100 if eps_growth >= 30 else 80 if eps_growth >= 15 else 55 if eps_growth >= 5 else 25
+    sub_scores.append(("EPS Growth", 0.1225, s, f"{eps_growth:+.1f}%"))
+
+    fwd_pe = md.get("forward_pe")
+    if isinstance(fwd_pe, (int, float)) and fwd_pe > 0:
+        s = 95 if fwd_pe <= 20 else 75 if fwd_pe <= 30 else 55 if fwd_pe <= 45 else 25
+        sub_scores.append(("Forward PE", 0.075, s, f"{fwd_pe:.1f}x"))
+    else:
+        sub_scores.append(("Forward PE", 0.075, 50, "N/A"))
+
+    peg = md.get("peg_ratio")
+    if isinstance(peg, (int, float)) and peg > 0:
+        s = 100 if peg <= 1 else 75 if peg <= 1.5 else 50 if peg <= 2.5 else 20
+        sub_scores.append(("PEG Ratio", 0.10, s, f"{peg:.2f}"))
+    else:
+        sub_scores.append(("PEG Ratio", 0.10, 50, "N/A"))
+
+    fcf_yield = md.get("fcf_yield", 0)
+    s = 100 if fcf_yield >= 5 else 75 if fcf_yield >= 3 else 50 if fcf_yield >= 1.5 else 20
+    sub_scores.append(("FCF Yield", 0.075, s, f"{fcf_yield:.1f}%"))
+
+    weighted_total = sum(w * s for _, w, s, _ in sub_scores)
+    return round(weighted_total), sub_scores
 
 
 def score_technical(md: dict) -> tuple:
-    # 新上市股票（如SPCX）数据不足时，技术面无法可靠评分，直接返回中性分并标注
+    """技术面维度，20%权重。Trend Composite 25% | 3M RelStrength vs QQQ 25%
+    | RSI 15% | Volume Ratio 15% | 30D Vol 10% | Beta 10%."""
     if md.get("thin_history"):
         days = md.get("trading_days", 0)
-        return 50, [f"⚠️ 上市仅{days}个交易日，技术面指标(MA/RSI)数据不足，暂不参与评分（中性处理）"]
+        return 50, [("数据不足", 1.0, 50, f"上市仅{days}个交易日，技术面暂不可靠，中性处理")]
 
-    score, sig = 50, []
-    above_ma20  = md.get("above_ma20")
-    above_ma50  = md.get("above_ma50")
-    above_ma200 = md.get("above_ma200")
-    ma_flags = [f for f in [above_ma20, above_ma50, above_ma200] if f is not None]
-    ma_count = sum(1 for f in ma_flags if f)
+    sub_scores = []
 
-    if len(ma_flags) == 3:
-        if ma_count == 3:   score += 15; sig.append("多头排列：站上MA20/50/200 ✅")
-        elif ma_count == 2: score += 7;  sig.append("中性偏多")
-        elif ma_count == 1: score -= 7;  sig.append("中性偏空")
-        else:                score -= 15; sig.append("空头排列 ⚠️")
-    elif ma_flags:
-        sig.append(f"均线数据部分可用（{ma_count}/{len(ma_flags)}条上方）")
+    above_ma20, above_ma50, above_ma200 = md.get("above_ma20"), md.get("above_ma50"), md.get("above_ma200")
+    price_vs_ma20 = 80 if above_ma20 else 30 if above_ma20 is not None else 50
+    ma20_vs_ma50 = 75 if (above_ma20 and above_ma50) else 35 if (above_ma20 is not None and above_ma50 is not None) else 50
+    ma50_vs_ma200 = 70 if (above_ma50 and above_ma200) else 40 if (above_ma50 is not None and above_ma200 is not None) else 50
+    ma_cross = md.get("ma_cross")
+    cross_score = 100 if ma_cross == "golden" else 20 if ma_cross == "death" else 60
+    slope_confirm = 70 if (above_ma20 and above_ma50) else 40
+    trend_composite = round(
+        price_vs_ma20 * 0.25 + ma20_vs_ma50 * 0.20 + ma50_vs_ma200 * 0.20 +
+        cross_score * 0.20 + slope_confirm * 0.15
+    )
+    cross_note = "金叉" if ma_cross == "golden" else "死叉" if ma_cross == "death" else "无交叉"
+    sub_scores.append(("Trend Composite", 0.25, trend_composite,
+                       f"MA5/20{cross_note}, 站上MA20:{above_ma20}, MA50:{above_ma50}, MA200:{above_ma200}"))
 
-    rsi = md.get("rsi", "N/A")
+    rel_strength = md.get("rel_strength_3m")
+    if isinstance(rel_strength, (int, float)):
+        s = 100 if rel_strength >= 20 else 80 if rel_strength >= 10 else 60 if rel_strength >= 0 else 30
+        sub_scores.append(("3M Relative Strength vs QQQ", 0.25, s, f"{rel_strength:+.1f}pp"))
+    else:
+        sub_scores.append(("3M Relative Strength vs QQQ", 0.25, 50, "N/A"))
+
+    rsi = md.get("rsi")
     if isinstance(rsi, (int, float)):
-        if rsi < 30:   score += 10; sig.append(f"RSI={rsi:.0f} 超卖，反弹概率高")
-        elif rsi > 75: score -= 12; sig.append(f"RSI={rsi:.0f} 严重超买")
-        elif rsi > 65: score -= 5;  sig.append(f"RSI={rsi:.0f} 偏热")
+        s = 100 if 55 <= rsi <= 70 else 75 if 45 <= rsi < 55 else 55 if 70 < rsi <= 80 else 35
+        sub_scores.append(("RSI(14)", 0.15, s, f"{rsi:.0f}"))
+    else:
+        sub_scores.append(("RSI(14)", 0.15, 50, "N/A"))
 
-    macd_hist = md.get("macd_hist", 0)
-    if macd_hist > 0.1:  score += 10; sig.append(f"MACD柱+{macd_hist:.3f} 动量向上")
-    elif macd_hist < -0.1: score -= 10; sig.append(f"MACD柱{macd_hist:.3f} 动量向下")
+    vol_ratio = md.get("vol_ratio", 1)
+    s = 90 if 1.2 <= vol_ratio <= 2.5 else 70 if 1 <= vol_ratio < 1.2 else 50 if 0.7 <= vol_ratio < 1 else 30
+    sub_scores.append(("Volume Ratio", 0.15, s, f"{vol_ratio:.2f}x"))
 
-    vol_ratio, chg = md.get("vol_ratio", 1), md.get("change_pct", 0)
-    if vol_ratio > 1.5 and chg > 1:   score += 8; sig.append(f"放量上涨{vol_ratio:.1f}x")
-    elif vol_ratio > 1.5 and chg < -1: score -= 8; sig.append(f"放量下跌{vol_ratio:.1f}x")
+    vol_30d = md.get("vol_30d_annualized")
+    if isinstance(vol_30d, (int, float)):
+        s = 90 if vol_30d <= 25 else 65 if vol_30d <= 40 else 35
+        sub_scores.append(("30D Annualised Volatility", 0.10, s, f"{vol_30d:.1f}%"))
+    else:
+        sub_scores.append(("30D Annualised Volatility", 0.10, 50, "N/A"))
 
-    bb_pct = md.get("bb_pct", 50)
-    if bb_pct > 90:  score -= 8; sig.append(f"布林上轨附近，短期过热")
-    elif bb_pct < 10: score += 8; sig.append(f"布林下轨附近，超卖反弹机会")
-
-    return max(0, min(100, score)), sig[:4]
-
-
-def score_sentiment(md: dict) -> tuple:
-    score, sig = 50, []
-    inst = md.get("inst_pct", 0)
-    if inst > 75: score += 8; sig.append(f"机构持仓{inst:.1f}% 高")
-    elif inst < 20: score -= 5; sig.append(f"机构持仓{inst:.1f}% 偏低")
-
-    short = md.get("short_ratio", 0)
-    if short < 2: score += 5; sig.append(f"空头比率{short:.1f} 压力小")
-    elif short > 5: score -= 8; sig.append(f"空头比率{short:.1f} ⚠️ 空头聚集")
-
-    rec = md.get("analyst_rec", 3)
-    if rec <= 1.8: score += 12; sig.append(f"分析师评级{rec:.1f} 强烈买入")
-    elif rec >= 3.5: score -= 8; sig.append(f"分析师评级{rec:.1f} 偏向卖出")
-
-    upside = md.get("upside", 0)
-    if upside > 25: score += 8; sig.append(f"目标价空间+{upside:.1f}% 分析师看多")
-    elif upside < -5: score -= 8; sig.append(f"目标价已低于现价")
-
-    return max(0, min(100, score)), sig[:4]
-
-
-def score_risk(md: dict, macro: dict) -> tuple:
-    score, sig = 60, []
     beta = md.get("beta", 1.0)
-    if beta < 0.7: score += 10; sig.append(f"Beta={beta:.2f} 低波动")
-    elif beta < 1.2: score += 3; sig.append(f"Beta={beta:.2f} 市场中性")
-    elif beta < 1.8: score -= 8; sig.append(f"Beta={beta:.2f} 高波动")
-    else: score -= 18; sig.append(f"Beta={beta:.2f} ⚠️ 极高波动")
+    s = 90 if beta <= 1.2 else 65 if beta <= 1.7 else 35
+    sub_scores.append(("Beta vs QQQ/S&P", 0.10, s, f"{beta:.2f}"))
 
-    pct_from_hi = md.get("pct_from_52w_hi", 0)
-    if pct_from_hi > -5: score -= 8; sig.append(f"距52周高点{pct_from_hi:.1f}% 高位风险")
-    elif pct_from_hi < -30: score += 8; sig.append(f"距52周高点{pct_from_hi:.1f}% 回撤充分")
+    weighted_total = sum(w * s for _, w, s, _ in sub_scores)
+    return round(weighted_total), sub_scores
+
+
+def score_sentiment(md: dict, macro: dict) -> tuple:
+    """情绪维度，10%权重。VIX 60% | Put/Call 20% | Positive Analyst Rating 20%
+    （Put/Call无免费实时源，用分析师评级方向近似代理，已标注）。"""
+    sub_scores = []
 
     vix = macro.get("vix")
     if vix is not None:
-        if vix > 30: score -= 15; sig.append(f"VIX={vix:.1f} ⚠️ 系统性风险高")
-        elif vix > 22: score -= 6; sig.append(f"VIX={vix:.1f} 适度谨慎")
+        s = 80 if vix <= 15 else 90 if vix <= 20 else 65 if vix <= 25 else 35 if vix <= 35 else 15
+        sub_scores.append(("VIX", 0.60, s, f"{vix:.1f}"))
+    else:
+        sub_scores.append(("VIX", 0.60, 50, "数据缺失"))
 
-    cap = md.get("market_cap_b", 0)
-    if cap > 200: score += 5; sig.append(f"市值${cap:.0f}B 流动性好")
-    elif 0 < cap < 10: score -= 8; sig.append(f"市值${cap:.1f}B 流动性风险较高")
+    analyst_rec = md.get("analyst_rec", 3)
+    proxy_score = 80 if analyst_rec <= 1.8 else 65 if analyst_rec <= 2.3 else 45 if analyst_rec <= 3 else 30
+    sub_scores.append(("Equity Put/Call Ratio (代理:分析师评级方向)", 0.20, proxy_score,
+                       f"分析师评级{analyst_rec:.1f}(1=买入,5=卖出)，非真实Put/Call数据"))
 
-    # 油价/地缘政治敞口的简化风险代理（高Beta + 高油价波动 = 额外风险）
-    crude_chg = macro.get("crude_chg_pct")
-    if crude_chg is not None and abs(crude_chg) > 4:
-        score -= 4; sig.append(f"油价剧烈波动({crude_chg:+.1f}%)，地缘政治风险溢价上升")
+    num_analysts = md.get("num_analysts", 0)
+    if num_analysts > 0:
+        positive_pct_proxy = max(0, min(100, (3.5 - analyst_rec) / 2.5 * 100))
+        s = 90 if positive_pct_proxy >= 80 else 70 if positive_pct_proxy >= 65 else 50 if positive_pct_proxy >= 50 else 25
+        sub_scores.append(("Positive Analyst Rating", 0.20, s, f"约{positive_pct_proxy:.0f}%(由评级均值估算)"))
+    else:
+        sub_scores.append(("Positive Analyst Rating", 0.20, 50, "无分析师覆盖数据"))
 
-    return max(0, min(100, score)), sig[:5]
+    weighted_total = sum(w * s for _, w, s, _ in sub_scores)
+    return round(weighted_total), sub_scores
+
+
+def score_risk(md: dict, macro: dict) -> tuple:
+    """风险维度，15%权重。VIX 45% | 10Y 35% | Credit Spread 20%
+    （Credit Spread需FRED的BAMLH0A0HYM2，未配置时用Beta+市值近似代理）。"""
+    sub_scores = []
+
+    vix = macro.get("vix")
+    if vix is not None:
+        s = 80 if vix <= 15 else 90 if vix <= 20 else 65 if vix <= 25 else 35 if vix <= 35 else 15
+        sub_scores.append(("VIX", 0.45, s, f"{vix:.1f}"))
+    else:
+        sub_scores.append(("VIX", 0.45, 50, "数据缺失"))
+
+    us10y = macro.get("us10y")
+    if us10y is not None:
+        s = 90 if us10y <= 3.5 else 70 if us10y <= 4.5 else 45 if us10y <= 5 else 20
+        sub_scores.append(("10Y Treasury Yield", 0.35, s, f"{us10y:.2f}%"))
+    else:
+        sub_scores.append(("10Y Treasury Yield", 0.35, 50, "数据缺失"))
+
+    beta = md.get("beta", 1.0)
+    market_cap_b = md.get("market_cap_b", 0)
+    if beta < 1.2 and market_cap_b > 100:
+        proxy_score = 80
+    elif beta < 1.7:
+        proxy_score = 60
+    else:
+        proxy_score = 35
+    sub_scores.append(("High Yield Credit Spread (代理:Beta+市值)", 0.20, proxy_score,
+                       f"Beta={beta:.2f}, 市值${market_cap_b:.0f}B，非真实信用利差数据"))
+
+    weighted_total = sum(w * s for _, w, s, _ in sub_scores)
+    return round(weighted_total), sub_scores
 
 
 def compute_mftsr(md: dict, macro: dict) -> dict:
-    m, m_sig = score_macro(macro)
-    f, f_sig = score_fundamental(md)
-    t, t_sig = score_technical(md)
-    s, s_sig = score_sentiment(md)
-    r, r_sig = score_risk(md, macro)
+    m, m_sub = score_macro(macro)
+    f, f_sub = score_fundamental(md)
+    t, t_sub = score_technical(md)
+    s, s_sub = score_sentiment(md, macro)
+    r, r_sub = score_risk(md, macro)
 
     composite = round(m * WEIGHTS["macro"] + f * WEIGHTS["fundamental"] +
                        t * WEIGHTS["technical"] + s * WEIGHTS["sentiment"] +
                        r * WEIGHTS["risk"])
 
-    if composite >= SCORE_BUY:   signal, action = "买入信号", "BUY"
-    elif composite >= SCORE_HOLD: signal, action = "持有观望", "HOLD"
-    else:                          signal, action = "减仓警示", "SELL"
+    label, action, emoji = score_band(composite)
 
     dims = {"macro": m, "fundamental": f, "technical": t, "sentiment": s, "risk": r}
     alerts = [k for k, v in dims.items() if v < ALERT_DIM]
@@ -558,219 +568,167 @@ def compute_mftsr(md: dict, macro: dict) -> dict:
     position_pct = max(0, min(20, round(edge * 15)))
 
     return {
-        "composite": composite, "signal": signal, "action": action,
+        "composite": composite, "label": label, "action": action, "emoji": emoji,
         "macro": m, "fundamental": f, "technical": t, "sentiment": s, "risk": r,
-        "macro_sig": m_sig, "fundamental_sig": f_sig, "technical_sig": t_sig,
-        "sentiment_sig": s_sig, "risk_sig": r_sig,
+        "macro_sub": m_sub, "fundamental_sub": f_sub, "technical_sub": t_sub,
+        "sentiment_sub": s_sub, "risk_sub": r_sub,
         "alerts": alerts, "stop_loss": stop_loss, "position_pct": position_pct,
     }
 
 
 # ════════════════════════════════════════════════════════════════════════════
-#  3. Claude AI 文字解读 — Bilingual Commentary
+#  3. Claude AI 文字解读 — 五个独立段落
 # ════════════════════════════════════════════════════════════════════════════
 
-SYSTEM_PROMPT_ZH = """你是MFTSR Alpha系统的首席分析师，融合了：
-- Ray Dalio的宏观债务周期思维
-- Peter Lynch基本面精选股票哲学
-- Stanley Druckenmiller趋势跟随与风险管理
-- Jim Simons量化信号体系
+SYSTEM_PROMPT_MACRO = """你是MFTSR Alpha系统的宏观策略分析师，融合Ray Dalio的宏观债务周期思维。
+生成今日宏观简报，覆盖经济数据(CPI/非农/PMI)、美联储政策动态、VIX市场情绪含义、
+油价与美债收益率走势。地缘政治/关税风险作为定性背景提及（不带具体评分权重，
+基于你的知识给出合理评估，并说明这是定性判断、非实时新闻）。
+风格：直接、精准、专业；数字优先；不确定时说"信号混合"；篇幅紧凑；简体中文。"""
 
-你必须在宏观分析中明确覆盖：经济数据（CPI/非农/PMI走向）、美联储政策动态、
-地缘政治风险（如伊朗/中东局势、关税政策对相关行业供应链和成本的影响）、
-VIX水平的市场情绪含义、油价与美债收益率走势。
-
-输出将直接发送到Telegram。风格要求：直接、精准、专业，禁止废话；
-数字和事实优先；不确定时明确说"信号混合，等待确认"；篇幅紧凑；用简体中文输出。"""
-
-SYSTEM_PROMPT_EN = """You are the Chief Analyst of the MFTSR Alpha system, combining:
-- Ray Dalio's macro debt-cycle framework
-- Peter Lynch's fundamentals-driven stock-picking philosophy
-- Stanley Druckenmiller's trend-following and risk management
-- Jim Simons' quantitative signal discipline
-
-Your macro analysis MUST explicitly cover: economic data (CPI/NFP/PMI trends),
-Federal Reserve policy stance, geopolitical risk (e.g. Iran/Middle East tensions,
-tariff policy impact on relevant supply chains and input costs), what the current
-VIX level means for market sentiment, and oil price / Treasury yield trends.
-
-Output goes directly to Telegram. Style: direct, precise, professional, no filler;
-numbers and facts first; say "mixed signals, awaiting confirmation" when genuinely
-uncertain rather than forcing a call; keep it tight; output in English."""
+SYSTEM_PROMPT_STOCK = """你是MFTSR Alpha系统的个股分析师，融合Peter Lynch基本面哲学、
+Stanley Druckenmiller趋势跟随、Jim Simons量化信号体系。
+今日宏观背景已在另一份简报中说明。你需要为这只股票生成5个独立段落，分别对应
+基本面/技术面/情绪/风险/宏观影响五个维度，每段明确给出该维度的评分（已提供，
+直接引用），并结合具体数据展开2-3句分析。风格：直接、精准、专业，数字优先，
+篇幅紧凑（这是多只股票中的一只），简体中文。"""
 
 
-def _macro_context_str(macro: dict, lang: str) -> str:
-    vix = macro.get('vix', 'N/A')
-    vix_desc_zh, vix_desc_en, _ = vix_regime(vix if isinstance(vix, (int, float)) else None)
-    vix_desc = vix_desc_zh if lang == "zh" else vix_desc_en
-
-    if lang == "zh":
-        parts = [
-            f"VIX={vix} ({vix_desc})",
-            f"DXY={macro.get('dxy','N/A')}",
-            f"US10Y={macro.get('us10y','N/A')}%",
-            f"WTI原油=${macro.get('crude','N/A')} ({macro.get('crude_chg_pct',0):+.2f}%)",
-            f"纳指={macro.get('nasdaq_chg_pct',0):+.2f}%",
-        ]
-        if macro.get("fed_funds_rate") is not None:
-            parts.append(f"Fed Funds={macro['fed_funds_rate']:.2f}%")
-        if macro.get("cpi_mom_pct") is not None:
-            parts.append(f"CPI环比={macro['cpi_mom_pct']:+.2f}%")
-        if macro.get("nfp_change_k") is not None:
-            parts.append(f"非农变化={macro['nfp_change_k']:.0f}千人")
-        if macro.get("unemployment_rate") is not None:
-            parts.append(f"失业率={macro['unemployment_rate']:.1f}%")
-    else:
-        parts = [
-            f"VIX={vix} ({vix_desc})",
-            f"DXY={macro.get('dxy','N/A')}",
-            f"US10Y={macro.get('us10y','N/A')}%",
-            f"WTI Crude=${macro.get('crude','N/A')} ({macro.get('crude_chg_pct',0):+.2f}%)",
-            f"Nasdaq={macro.get('nasdaq_chg_pct',0):+.2f}%",
-        ]
-        if macro.get("fed_funds_rate") is not None:
-            parts.append(f"Fed Funds={macro['fed_funds_rate']:.2f}%")
-        if macro.get("cpi_mom_pct") is not None:
-            parts.append(f"CPI MoM={macro['cpi_mom_pct']:+.2f}%")
-        if macro.get("nfp_change_k") is not None:
-            parts.append(f"NFP Δ={macro['nfp_change_k']:.0f}k")
-        if macro.get("unemployment_rate") is not None:
-            parts.append(f"Unemployment={macro['unemployment_rate']:.1f}%")
-
-    return "  ".join(parts)
-
-
-def _fmt(val, suffix=""):
-    """格式化可能是数字或'N/A'字符串的字段，避免格式化崩溃。"""
-    if isinstance(val, (int, float)):
-        return f"{val:.0f}{suffix}" if suffix == "" else f"{val:.1f}{suffix}"
-    return str(val)
-
-
-def build_prompt(ticker: dict, md: dict, scores: dict, macro: dict, report_type: str, lang: str) -> str:
-    sym, name = ticker["sym"], ticker["name"]
-    macro_str = _macro_context_str(macro, lang)
-    rsi_str   = _fmt(md.get('rsi', 'N/A'))
-    ma20_str  = md.get('ma20', 'N/A')
-    ma50_str  = md.get('ma50', 'N/A')
-    ma200_str = md.get('ma200', 'N/A')
-    thin_note_zh = ""
-    thin_note_en = ""
-    if md.get("thin_history"):
-        days = md.get("trading_days", 0)
-        thin_note_zh = f"\n⚠️ 注意：{sym}上市仅{days}个交易日，长周期技术指标(均线/RSI)数据不足，技术面评分为中性占位值，请在分析中明确说明这一点，避免给出虚假的趋势判断"
-        thin_note_en = f"\n⚠️ Note: {sym} has only {days} trading days of history post-IPO. Long-window technical indicators (MAs/RSI) are insufficient and the technical score is a neutral placeholder — explicitly flag this in your analysis rather than asserting a trend"
-
-    if lang == "zh":
-        label = REPORT_LABELS_ZH.get(report_type, "分析报告")
-        alerts_str = f"\n⚠️ 风险警报维度（评分<30）: {', '.join(scores['alerts'])}" if scores.get("alerts") else ""
-        fred_note = "" if FRED_API_KEY else "\n（注：CPI/NFP详细数据未配置FRED API，请基于市场指标定性判断宏观环境，并提示用户当前缺少官方经济数据源）"
-        return f"""【{label}】{sym} — {name}
+def build_macro_prompt(macro: dict) -> str:
+    fred_note = "" if FRED_API_KEY else "\n（注：未配置FRED API，CPI/非农/失业率/Fed利率为缺失状态，宏观评分对应子项按中性50分处理，建议配置FRED_API_KEY以获得真实数据）"
+    return f"""请生成今日美股收盘宏观简报。
 
 ═══ 市场数据 ═══
-价格: ${md['price']} ({md['change_pct']:+.2f}%)
-52周区间: ${md['lo_52w']} — ${md['hi_52w']} (距高点{md['pct_from_52w_hi']:.1f}%)
-MA20/50/200: ${ma20_str} / ${ma50_str} / ${ma200_str}
-RSI(14)={rsi_str}  MACD柱={md['macd_hist']:.3f}  成交量比={md['vol_ratio']:.1f}x
+VIX: {macro.get('vix','N/A')} ({macro.get('vix_chg_pct',0):+.2f}%) — {vix_regime(macro.get('vix'))}
+DXY: {macro.get('dxy','N/A')}
+US10Y: {macro.get('us10y','N/A')}%
+标普500: {macro.get('sp500_chg_pct',0):+.2f}%  纳指: {macro.get('nasdaq_chg_pct',0):+.2f}%
+WTI原油: ${macro.get('crude','N/A')} ({macro.get('crude_chg_pct',0):+.2f}%)
+黄金: {macro.get('gold','N/A')}
+Fed Funds Rate: {macro.get('fed_funds_rate','N/A')}
+CPI环比: {macro.get('cpi_mom_pct','N/A')}
+非农变化: {macro.get('nfp_change_k','N/A')}{fred_note}
 
-═══ 基本面 ═══
-PE={md['pe_ratio']}x  FCF收益率={md['fcf_yield']:.1f}%
-营收增速={md['rev_growth']:+.1f}%  EPS增速={md['eps_growth']:+.1f}%
-目标价=${md['target_price']} (上行空间{md['upside']:+.1f}%)
+请按以下结构输出（不加多余章节），用简体中文：
 
-═══ MFTSR评分 ═══
-综合: {scores['composite']}/100 → {scores['signal']}
-宏观{scores['macro']} 基本面{scores['fundamental']} 技术面{scores['technical']} 情绪{scores['sentiment']} 风险{scores['risk']}{alerts_str}
-
-═══ 宏观环境（含经济数据/Fed/地缘政治背景需你补充解读）═══
-{macro_str}{fred_note}
-
-请严格按以下结构输出（不加多余章节），全部用简体中文：
-
-【核心判断】一句话总结
-【宏观面】（3点：①经济数据CPI/NFP/PMI方向 ②美联储政策动态 ③地缘政治/关税风险，如伊朗中东局势对油价和相关板块的潜在影响——基于你的知识给出合理评估，并说明这是定性判断而非实时新闻）
-【基本面】（2点，估值与成长性评估）
-【技术面】（2点，趋势与关键价位）
-【情绪与资金】（1-2点）
-【风险提示】（1-2个具体风险点）
-【操作建议】
-• 信号: {scores['action']}
-• 止损参考: ${scores['stop_loss']}
-• 仓位建议: 不超过{scores['position_pct']}%
-• 近期关注: [本周关键催化剂，包括可能的经济数据公布或地缘政治事件]"""
-
-    else:  # English
-        label = REPORT_LABELS_EN.get(report_type, "Analysis Report")
-        alerts_str = f"\n⚠️ Risk Alert (score<30): {', '.join(scores['alerts'])}" if scores.get("alerts") else ""
-        fred_note = "" if FRED_API_KEY else "\n(Note: detailed CPI/NFP data not configured via FRED API — provide qualitative macro assessment based on market-based indicators, and flag that the official economic data feed is not connected)"
-        return f"""[{label}] {sym} — {name}
-
-=== Market Data ===
-Price: ${md['price']} ({md['change_pct']:+.2f}%)
-52W Range: ${md['lo_52w']} — ${md['hi_52w']} ({md['pct_from_52w_hi']:.1f}% from high)
-MA20/50/200: ${ma20_str} / ${ma50_str} / ${ma200_str}
-RSI(14)={rsi_str}  MACD hist={md['macd_hist']:.3f}  Volume ratio={md['vol_ratio']:.1f}x
-
-=== Fundamentals ===
-PE={md['pe_ratio']}x  FCF yield={md['fcf_yield']:.1f}%
-Revenue growth={md['rev_growth']:+.1f}%  EPS growth={md['eps_growth']:+.1f}%
-Target price=${md['target_price']} (upside {md['upside']:+.1f}%)
-
-=== MFTSR Scores ===
-Composite: {scores['composite']}/100 → {scores['signal']}
-Macro {scores['macro']}  Fundamental {scores['fundamental']}  Technical {scores['technical']}  Sentiment {scores['sentiment']}  Risk {scores['risk']}{alerts_str}
-
-=== Macro Context (economic data / Fed / geopolitical backdrop — add your interpretation) ===
-{macro_str}{fred_note}
-
-Output strictly in this structure (no extra sections), entirely in English:
-
-[Core Call] One-sentence summary
-[Macro] (3 points: (1) CPI/NFP/PMI direction (2) Fed policy stance (3) Geopolitical/tariff risk — e.g. Iran/Middle East tensions and their potential impact on oil prices and relevant sectors, based on your knowledge; clearly flag this as qualitative judgment, not real-time news)
-[Fundamentals] (2 points on valuation and growth quality)
-[Technical] (2 points on trend and key levels)
-[Sentiment & Flows] (1-2 points)
-[Risk Flags] (1-2 specific risks)
-[Action]
-- Signal: {scores['action']}
-- Stop-loss reference: ${scores['stop_loss']}
-- Position sizing: max {scores['position_pct']}% of portfolio
-- Watch this week: [key catalysts, including possible economic data releases or geopolitical events]"""
+【今日宏观核心判断】一句话总结
+【经济数据与美联储】2-3点
+【VIX与风险偏好】1-2点
+【地缘政治与关税背景】2-3点（基于你的知识定性评估，明确标注这是定性判断非实时新闻，且此项不计入任何维度的数值评分）
+【对美股整体影响】1-2点
+【本周关键事件】1-2个需关注的事件"""
 
 
-def get_ai_commentary(ticker: dict, md: dict, scores: dict, macro: dict, report_type: str, lang: str) -> str:
+def get_macro_commentary(macro: dict) -> str:
     if not ANTHROPIC_KEY:
-        return _fallback_commentary(ticker, md, scores, lang)
+        return "[AI未配置]"
     try:
         client = anthropic.Anthropic(api_key=ANTHROPIC_KEY)
-        prompt = build_prompt(ticker, md, scores, macro, report_type, lang)
-        system = SYSTEM_PROMPT_ZH if lang == "zh" else SYSTEM_PROMPT_EN
+        prompt = build_macro_prompt(macro)
         msg = client.messages.create(
-            model="claude-sonnet-4-6", max_tokens=1000,
-            system=system, messages=[{"role": "user", "content": prompt}],
+            model="claude-sonnet-4-6", max_tokens=900,
+            system=SYSTEM_PROMPT_MACRO, messages=[{"role": "user", "content": prompt}],
         )
         return msg.content[0].text
     except Exception as e:
-        logger.error(f"Claude API 调用失败 {ticker['sym']} [{lang}]: {e}")
-        return _fallback_commentary(ticker, md, scores, lang)
+        logger.error(f"宏观简报生成失败: {e}")
+        return f"[AI解读暂时不可用: {e}]"
 
 
-def _fallback_commentary(ticker: dict, md: dict, scores: dict, lang: str) -> str:
+def _fmt(val, decimals=1):
+    if isinstance(val, (int, float)):
+        return f"{val:.{decimals}f}"
+    return str(val)
+
+
+def _format_sub_scores(sub_scores: list) -> str:
+    lines = []
+    for label, weight, score, detail in sub_scores:
+        lines.append(f"  - {label} (权重{weight*100:.1f}%): 评分{score} | {detail}")
+    return "\n".join(lines)
+
+
+def build_stock_prompt(ticker: dict, md: dict, scores: dict, macro_headline: str) -> str:
+    sym, name = ticker["sym"], ticker["name"]
+
+    thin_note = ""
+    if md.get("thin_history"):
+        days = md.get("trading_days", 0)
+        thin_note = f"\n⚠️ 注意：{sym}上市仅{days}个交易日，技术面数据不足，请在技术面段落明确说明"
+
+    alerts_str = f"\n⚠️ 风险警报维度（评分<30）: {', '.join(scores['alerts'])}" if scores.get("alerts") else ""
+
+    return f"""【个股分析】{sym} — {name}
+
+═══ 价格 ═══
+${md['price']} ({md['change_pct']:+.2f}%){thin_note}
+
+═══ 基本面子指标明细（35%权重）═══
+{_format_sub_scores(scores['fundamental_sub'])}
+基本面综合评分: {scores['fundamental']}/100
+
+═══ 技术面子指标明细（20%权重）═══
+{_format_sub_scores(scores['technical_sub'])}
+技术面综合评分: {scores['technical']}/100
+
+═══ 情绪面子指标明细（10%权重）═══
+{_format_sub_scores(scores['sentiment_sub'])}
+情绪面综合评分: {scores['sentiment']}/100
+
+═══ 风险面子指标明细（15%权重）═══
+{_format_sub_scores(scores['risk_sub'])}
+风险面综合评分: {scores['risk']}/100
+
+═══ MFTSR综合 ═══
+{scores['composite']}/100 → {scores['label']}（{scores['action']}）
+宏观维度评分: {scores['macro']}/100（占20%权重，已计入综合分）{alerts_str}
+
+═══ 今日宏观要点（供参考）═══
+{macro_headline}
+
+请生成5个独立段落，每段开头用【】标注维度名+评分，全部简体中文：
+
+【基本面 - 评分{scores['fundamental']}/100】2-3句话，结合Forward PE/PEG/营收利润增速展开
+【技术面 - 评分{scores['technical']}/100】2-3句话，结合趋势/金叉死叉/RSI/相对强弱展开
+【情绪面 - 评分{scores['sentiment']}/100】2-3句话，结合VIX/分析师评级展开
+【风险面 - 评分{scores['risk']}/100】2-3句话，结合Beta/波动率/具体风险点展开
+【宏观影响 - 评分{scores['macro']}/100】1-2句话：今日宏观环境对这只股票的具体影响
+
+【操作建议】
+• 综合评分: {scores['composite']}/100 → {scores['action']}
+• 止损参考: ${scores['stop_loss']}
+• 仓位建议: 不超过{scores['position_pct']}%"""
+
+
+def get_stock_commentary(ticker: dict, md: dict, scores: dict, macro_headline: str) -> str:
+    if not ANTHROPIC_KEY:
+        return _fallback_commentary(ticker, md, scores)
+    try:
+        client = anthropic.Anthropic(api_key=ANTHROPIC_KEY)
+        prompt = build_stock_prompt(ticker, md, scores, macro_headline)
+        msg = client.messages.create(
+            model="claude-sonnet-4-6", max_tokens=1000,
+            system=SYSTEM_PROMPT_STOCK, messages=[{"role": "user", "content": prompt}],
+        )
+        return msg.content[0].text
+    except Exception as e:
+        logger.error(f"Claude API 调用失败 {ticker['sym']}: {e}")
+        return _fallback_commentary(ticker, md, scores)
+
+
+def _fallback_commentary(ticker: dict, md: dict, scores: dict) -> str:
     sym = ticker["sym"]
-    rsi_disp = _fmt(md.get('rsi', 'N/A'))
-    ma50_status_zh = '多头排列' if md.get('above_ma50') else ('跌破MA50' if md.get('above_ma50') is False else '数据不足')
-    ma50_status_en = 'above MA50' if md.get('above_ma50') else ('below MA50' if md.get('above_ma50') is False else 'insufficient data')
-    if lang == "zh":
-        return (f"[AI离线] {sym} 规则评分摘要\n综合评分: {scores['composite']}/100 → {scores['signal']}\n"
-                f"RSI={rsi_disp}, {ma50_status_zh}\n"
-                f"止损${scores['stop_loss']} | 仓位≤{scores['position_pct']}%")
-    return (f"[AI offline] {sym} rule-based summary\nComposite: {scores['composite']}/100 → {scores['signal']}\n"
-            f"RSI={rsi_disp}, {ma50_status_en}\n"
-            f"Stop-loss ${scores['stop_loss']} | Position ≤{scores['position_pct']}%")
+    return (f"[AI离线] {sym} 规则评分摘要\n"
+            f"【基本面 - 评分{scores['fundamental']}/100】数据见上方明细\n"
+            f"【技术面 - 评分{scores['technical']}/100】数据见上方明细\n"
+            f"【情绪面 - 评分{scores['sentiment']}/100】数据见上方明细\n"
+            f"【风险面 - 评分{scores['risk']}/100】数据见上方明细\n"
+            f"【宏观影响 - 评分{scores['macro']}/100】见宏观简报\n"
+            f"止损${scores['stop_loss']} | 仓位≤{scores['position_pct']}%")
 
 
 # ════════════════════════════════════════════════════════════════════════════
-#  4. Telegram 发送 — Bilingual Dual Messages
+#  4. Telegram 发送
 # ════════════════════════════════════════════════════════════════════════════
 
 BASE_URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}"
@@ -778,7 +736,7 @@ BASE_URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}"
 
 def _send(text: str) -> bool:
     if not TELEGRAM_TOKEN or not CHAT_ID:
-        logger.error("Telegram 未配置，跳过发送 / not configured, skipping send")
+        logger.error("Telegram 未配置，跳过发送")
         return False
     try:
         resp = requests.post(f"{BASE_URL}/sendMessage", json={
@@ -787,11 +745,11 @@ def _send(text: str) -> bool:
         }, timeout=15)
         data = resp.json()
         if not data.get("ok"):
-            logger.error(f"Telegram 错误 / error: {data}")
+            logger.error(f"Telegram 错误: {data}")
             return False
         return True
     except requests.RequestException as e:
-        logger.error(f"Telegram 网络错误 / network error: {e}")
+        logger.error(f"Telegram 网络错误: {e}")
         return False
 
 
@@ -804,184 +762,221 @@ def _score_bar(score: int, width: int = 8) -> str:
     return "█" * filled + "░" * (width - filled)
 
 
-def _signal_emoji(action: str) -> str:
-    return {"BUY": "🟢", "HOLD": "🟡", "SELL": "🔴"}.get(action, "⚪")
-
-
-def _dim_label(score: int) -> str:
-    if score >= 70: return "🔋🔋🔋"
-    if score >= 50: return "🔋🔋░"
-    if score >= 30: return "🔋░░"
-    return "⚠️░░"
-
-
-def build_header(report_type: str, macro: dict, lang: str) -> str:
-    labels = REPORT_LABELS_ZH if lang == "zh" else REPORT_LABELS_EN
-    label = labels.get(report_type, "MFTSR Report")
+def build_macro_message(macro: dict, commentary: str) -> str:
     uk_now = datetime.now().strftime("%Y-%m-%d %H:%M")
-
     vix = macro.get("vix", "N/A")
     vix_chg = macro.get("vix_chg_pct", 0)
     vix_icon = "😱" if isinstance(vix, (int, float)) and vix > 25 else ("😰" if isinstance(vix, (int, float)) and vix > 18 else "😌")
-    vix_desc_zh, vix_desc_en, _ = vix_regime(vix if isinstance(vix, (int, float)) else None)
-    vix_desc = vix_desc_zh if lang == "zh" else vix_desc_en
 
-    if lang == "zh":
-        macro_lines = [
-            f"  {vix_icon} VIX: <b>{vix}</b> ({vix_chg:+.2f}%) — {vix_desc}",
-            f"  💵 DXY: <b>{macro.get('dxy','N/A')}</b>",
-            f"  📈 S&amp;P500: <b>{macro.get('sp500_chg_pct',0):+.2f}%</b>  纳指: <b>{macro.get('nasdaq_chg_pct',0):+.2f}%</b>",
-            f"  🏦 US10Y: <b>{macro.get('us10y','N/A')}%</b>",
-            f"  🛢 WTI原油: <b>${macro.get('crude','N/A')}</b> ({macro.get('crude_chg_pct',0):+.2f}%)",
-            f"  🥇 黄金: <b>{macro.get('gold','N/A')}</b>",
-        ]
-        if macro.get("fed_funds_rate") is not None:
-            macro_lines.append(f"  🏛 Fed Funds Rate: <b>{macro['fed_funds_rate']:.2f}%</b>")
-        if macro.get("cpi_mom_pct") is not None:
-            macro_lines.append(f"  📊 CPI环比: <b>{macro['cpi_mom_pct']:+.2f}%</b>")
-        if macro.get("nfp_change_k") is not None:
-            macro_lines.append(f"  👷 非农变化: <b>{macro['nfp_change_k']:+.0f}k</b>")
-        title = "🌐 宏观环境快照"
-    else:
-        macro_lines = [
-            f"  {vix_icon} VIX: <b>{vix}</b> ({vix_chg:+.2f}%) — {vix_desc}",
-            f"  💵 DXY: <b>{macro.get('dxy','N/A')}</b>",
-            f"  📈 S&amp;P500: <b>{macro.get('sp500_chg_pct',0):+.2f}%</b>  Nasdaq: <b>{macro.get('nasdaq_chg_pct',0):+.2f}%</b>",
-            f"  🏦 US10Y: <b>{macro.get('us10y','N/A')}%</b>",
-            f"  🛢 WTI Crude: <b>${macro.get('crude','N/A')}</b> ({macro.get('crude_chg_pct',0):+.2f}%)",
-            f"  🥇 Gold: <b>{macro.get('gold','N/A')}</b>",
-        ]
-        if macro.get("fed_funds_rate") is not None:
-            macro_lines.append(f"  🏛 Fed Funds Rate: <b>{macro['fed_funds_rate']:.2f}%</b>")
-        if macro.get("cpi_mom_pct") is not None:
-            macro_lines.append(f"  📊 CPI MoM: <b>{macro['cpi_mom_pct']:+.2f}%</b>")
-        if macro.get("nfp_change_k") is not None:
-            macro_lines.append(f"  👷 NFP Change: <b>{macro['nfp_change_k']:+.0f}k</b>")
-        title = "🌐 Macro Snapshot"
+    lines = [
+        f"<b>◈ MFTSR ALPHA — 🌐 今日宏观简报</b>",
+        f"🕐 {uk_now} (UK时间)",
+        f"{'─'*32}",
+        f"  {vix_icon} VIX: <b>{vix}</b> ({vix_chg:+.2f}%) — {vix_regime(vix if isinstance(vix, (int, float)) else None)}",
+        f"  💵 DXY: <b>{macro.get('dxy','N/A')}</b>",
+        f"  📈 S&amp;P500: <b>{macro.get('sp500_chg_pct',0):+.2f}%</b>  纳指: <b>{macro.get('nasdaq_chg_pct',0):+.2f}%</b>",
+        f"  🏦 US10Y: <b>{macro.get('us10y','N/A')}%</b>",
+        f"  🛢 WTI原油: <b>${macro.get('crude','N/A')}</b> ({macro.get('crude_chg_pct',0):+.2f}%)",
+        f"  🥇 黄金: <b>{macro.get('gold','N/A')}</b>",
+    ]
+    if macro.get("fed_funds_rate") is not None:
+        lines.append(f"  🏛 Fed Funds Rate: <b>{macro['fed_funds_rate']:.2f}%</b>")
+    if macro.get("cpi_mom_pct") is not None:
+        lines.append(f"  📊 CPI环比: <b>{macro['cpi_mom_pct']:+.2f}%</b>")
 
-    time_label = "(UK时间)" if lang == "zh" else "(UK time)"
-    return (
-        f"<b>◈ MFTSR ALPHA — {label}</b>\n"
-        f"🕐 {uk_now} {time_label}\n"
-        f"{'─'*32}\n"
-        f"<b>{title}</b>\n"
-        + "\n".join(macro_lines) + "\n"
-        f"{'─'*32}"
-    )
+    lines.append(f"{'─'*32}")
+    lines.append(_escape(commentary))
+    lines.append(f"{'─'*32}")
+    lines.append(SCORE_LEGEND_ZH)
+
+    return "\n".join(lines)
 
 
-def build_ticker_message(ticker: dict, md: dict, scores: dict, commentary: str, lang: str) -> str:
+def build_stock_message(ticker: dict, md: dict, scores: dict, commentary: str) -> str:
     sym, name = ticker["sym"], ticker["name"]
     chg_arrow = "▲" if md["change_pct"] >= 0 else "▼"
-    sig = _signal_emoji(scores["action"])
 
-    if lang == "zh":
-        alert_label = "风险警报"
-        dim_labels = ["宏观", "基本面", "技术面", "情绪", "风险"]
-        composite_label = "MFTSR综合"
-        stop_label, pos_label = "止损", "仓位"
-    else:
-        alert_label = "Risk Alert"
-        dim_labels = ["Macro", "Fundamental", "Technical", "Sentiment", "Risk"]
-        composite_label = "MFTSR Composite"
-        stop_label, pos_label = "Stop-loss", "Position"
-
-    alert_line = f"\n⚠️ <b>{alert_label}</b>: {', '.join(scores['alerts'])}" if scores.get("alerts") else ""
-    rsi_disp = _fmt(md.get('rsi', 'N/A'))
+    alert_line = f"\n⚠️ <b>风险警报</b>: {', '.join(scores['alerts'])}维度评分极低" if scores.get("alerts") else ""
 
     return (
-        f"\n{sig} <b>{sym}</b>  {_escape(name)}\n"
-        f"  💰 <b>${md['price']}</b>  {chg_arrow}{abs(md['change_pct']):.2f}%   "
-        f"RSI={rsi_disp}  Vol={md['vol_ratio']:.1f}x\n"
-        f"\n<b>{composite_label}: {scores['composite']}/100</b>  [{_score_bar(scores['composite'])}]\n"
-        f"  {dim_labels[0]}{scores['macro']:>3} {_dim_label(scores['macro'])}  "
-        f"{dim_labels[1]}{scores['fundamental']:>3} {_dim_label(scores['fundamental'])}\n"
-        f"  {dim_labels[2]}{scores['technical']:>3} {_dim_label(scores['technical'])}  "
-        f"{dim_labels[3]}{scores['sentiment']:>3} {_dim_label(scores['sentiment'])}\n"
-        f"  {dim_labels[4]}{scores['risk']:>3} {_dim_label(scores['risk'])}"
+        f"\n{scores['emoji']} <b>{sym}</b>  {_escape(name)}\n"
+        f"  💰 <b>${md['price']}</b>  {chg_arrow}{abs(md['change_pct']):.2f}%\n"
+        f"\n<b>MFTSR综合: {scores['composite']}/100</b>  [{_score_bar(scores['composite'])}]  "
+        f"<b>{scores['label']}</b>\n"
+        f"  宏观{scores['macro']:>3}(20%)  基本面{scores['fundamental']:>3}(35%)\n"
+        f"  技术面{scores['technical']:>3}(20%)  情绪{scores['sentiment']:>3}(10%)  风险{scores['risk']:>3}(15%)"
         f"{alert_line}\n"
         f"\n{'─'*28}\n{_escape(commentary)}\n{'─'*28}\n"
-        f"🎯 <b>{scores['signal']}</b>  |  {stop_label} ${scores['stop_loss']}  |  {pos_label} ≤{scores['position_pct']}%\n"
+        f"🎯 <b>{scores['action']}</b>  |  止损 ${scores['stop_loss']}  |  仓位 ≤{scores['position_pct']}%\n"
     )
 
 
-def build_footer(results: list, lang: str) -> str:
-    if lang == "zh":
-        header = "\n📋 <b>本次报告汇总</b>\n" + "─"*28 + "\n"
-        disclaimer = "\n❓ 以上内容仅供参考，不构成投资建议"
-    else:
-        header = "\n📋 <b>Session Summary</b>\n" + "─"*28 + "\n"
-        disclaimer = "\n❓ For reference only — not investment advice"
-
+def build_footer(results: list) -> str:
+    header = "\n📋 <b>本次报告汇总</b>\n" + "─"*28 + "\n"
     rows = []
     for r in sorted(results, key=lambda x: x["scores"]["composite"], reverse=True):
-        sig = _signal_emoji(r["scores"]["action"])
-        rows.append(f"  {sig} <b>{r['ticker']['sym']:<8}</b>  {r['scores']['composite']:>3}/100  {r['md']['change_pct']:+.2f}%")
+        emoji = r["scores"]["emoji"]
+        rows.append(
+            f"  {emoji} <b>{r['ticker']['sym']:<8}</b>  {r['scores']['composite']:>3}/100  "
+            f"{r['scores']['label']}  {r['md']['change_pct']:+.2f}%"
+        )
+    disclaimer = "\n❓ 以上内容仅供参考，不构成投资建议。部分子指标（Put/Call、信用利差、PMI）因无免费实时数据源使用代理近似，已在AI解读中标注。"
     return header + "\n".join(rows) + "\n" + "─"*28 + disclaimer
 
 
-def send_report_lang(report_type: str, macro: dict, results: list, lang: str):
-    """发送单一语言的完整报告（header + 每只股票 + footer）。"""
-    _send(build_header(report_type, macro, lang))
-    time.sleep(1)
+# ════════════════════════════════════════════════════════════════════════════
+#  5. Dashboard JSON 导出
+# ════════════════════════════════════════════════════════════════════════════
+
+def export_dashboard_json(macro, macro_commentary, results, path="docs/dashboard_data.json"):
+    def safe(v):
+        if v is None:
+            return None
+        if isinstance(v, (int, float, str, bool)):
+            return v
+        return str(v)
+
+    def serialize_sub_scores(sub_scores):
+        return [{"label": label, "weight": weight, "score": score, "detail": detail}
+                for label, weight, score, detail in sub_scores]
+
+    payload = {
+        "generated_at": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "generated_at_uk": datetime.now().strftime("%Y-%m-%d %H:%M"),
+        "weights": WEIGHTS,
+        "macro": {
+            "commentary": macro_commentary,
+            "vix": safe(macro.get("vix")),
+            "vix_chg_pct": safe(macro.get("vix_chg_pct")),
+            "dxy": safe(macro.get("dxy")),
+            "us10y": safe(macro.get("us10y")),
+            "sp500_chg_pct": safe(macro.get("sp500_chg_pct")),
+            "nasdaq_chg_pct": safe(macro.get("nasdaq_chg_pct")),
+            "crude": safe(macro.get("crude")),
+            "crude_chg_pct": safe(macro.get("crude_chg_pct")),
+            "gold": safe(macro.get("gold")),
+            "fed_funds_rate": safe(macro.get("fed_funds_rate")),
+            "cpi_mom_pct": safe(macro.get("cpi_mom_pct")),
+            "nfp_change_k": safe(macro.get("nfp_change_k")),
+        },
+        "stocks": [],
+    }
+
     for r in results:
-        msg = build_ticker_message(r["ticker"], r["md"], r["scores"], r["commentary"][lang], lang)
+        md, scores, ticker = r["md"], r["scores"], r["ticker"]
+        payload["stocks"].append({
+            "sym": ticker["sym"],
+            "name": ticker["name"],
+            "sector": ticker.get("sector", ""),
+            "price": safe(md.get("price")),
+            "change_pct": safe(md.get("change_pct")),
+            "rsi": safe(md.get("rsi")),
+            "pe_ratio": safe(md.get("pe_ratio")),
+            "forward_pe": safe(md.get("forward_pe")),
+            "peg_ratio": safe(md.get("peg_ratio")),
+            "ma5": safe(md.get("ma5")), "ma20": safe(md.get("ma20")), "ma50": safe(md.get("ma50")),
+            "ma_cross": safe(md.get("ma_cross")),
+            "vol_ratio": safe(md.get("vol_ratio")),
+            "rel_strength_3m": safe(md.get("rel_strength_3m")),
+            "vol_30d_annualized": safe(md.get("vol_30d_annualized")),
+            "target_price": safe(md.get("target_price")),
+            "target_high": safe(md.get("target_high")),
+            "target_low": safe(md.get("target_low")),
+            "num_analysts": safe(md.get("num_analysts")),
+            "upside": safe(md.get("upside")),
+            "rev_growth": safe(md.get("rev_growth")),
+            "eps_growth": safe(md.get("eps_growth")),
+            "gross_margin": safe(md.get("gross_margin")),
+            "fcf_yield": safe(md.get("fcf_yield")),
+            "fcf_margin": safe(md.get("fcf_margin")),
+            "inst_pct": safe(md.get("inst_pct")),
+            "short_ratio": safe(md.get("short_ratio")),
+            "analyst_rec": safe(md.get("analyst_rec")),
+            "beta": safe(md.get("beta")),
+            "market_cap_b": safe(md.get("market_cap_b")),
+            "thin_history": safe(md.get("thin_history")),
+            "trading_days": safe(md.get("trading_days")),
+            "scores": {
+                "composite": scores["composite"],
+                "label": scores["label"],
+                "action": scores["action"],
+                "macro": scores["macro"],
+                "fundamental": scores["fundamental"],
+                "technical": scores["technical"],
+                "sentiment": scores["sentiment"],
+                "risk": scores["risk"],
+                "stop_loss": scores["stop_loss"],
+                "position_pct": scores["position_pct"],
+                "alerts": scores.get("alerts", []),
+                "fundamental_sub": serialize_sub_scores(scores["fundamental_sub"]),
+                "technical_sub": serialize_sub_scores(scores["technical_sub"]),
+                "sentiment_sub": serialize_sub_scores(scores["sentiment_sub"]),
+                "risk_sub": serialize_sub_scores(scores["risk_sub"]),
+                "macro_sub": serialize_sub_scores(scores["macro_sub"]),
+            },
+            "commentary": r["commentary"],
+        })
+
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(payload, f, ensure_ascii=False, indent=2)
+    logger.info(f"Dashboard JSON导出完成: {path} ({len(payload['stocks'])}只股票)")
+
+
+# ════════════════════════════════════════════════════════════════════════════
+#  6. 主流程
+# ════════════════════════════════════════════════════════════════════════════
+
+def main():
+    logger.info("开始生成美股收盘报告（v5，精确对齐Excel框架）...")
+    logger.info(f"股票池: {[t['sym'] for t in WATCHLIST]}")
+    logger.info(f"权重: {WEIGHTS}")
+
+    macro = get_macro_snapshot()
+    logger.info(f"VIX={macro.get('vix')} DXY={macro.get('dxy')} US10Y={macro.get('us10y')}")
+
+    macro_commentary = get_macro_commentary(macro)
+    macro_headline = macro_commentary.split("\n")[0] if macro_commentary else "宏观环境数据见上方简报"
+    time.sleep(1)
+
+    results = []
+    for ticker in WATCHLIST:
+        sym = ticker["sym"]
+        logger.info(f"  分析 {sym}...")
+        try:
+            md = get_market_data(sym)
+            scores = compute_mftsr(md, macro)
+            commentary = get_stock_commentary(ticker, md, scores, macro_headline)
+            results.append({"ticker": ticker, "md": md, "scores": scores, "commentary": commentary})
+            logger.info(f"  {sym}: composite={scores['composite']} ({scores['label']})")
+        except Exception as e:
+            logger.error(f"  {sym} 失败: {e}")
+        time.sleep(2)
+
+    if not results:
+        logger.error("没有生成任何结果，终止发送")
+        sys.exit(1)
+
+    _send(build_macro_message(macro, macro_commentary))
+    time.sleep(1.5)
+
+    results.sort(key=lambda r: r["scores"]["composite"], reverse=True)
+    for r in results:
+        msg = build_stock_message(r["ticker"], r["md"], r["scores"], r["commentary"])
         if len(msg) > 4000:
             for i in range(0, len(msg), 3900):
                 _send(msg[i:i+3900]); time.sleep(0.5)
         else:
             _send(msg)
         time.sleep(1.5)
-    _send(build_footer(results, lang))
-    logger.info(f"报告发送完成 [{lang}]: {report_type} — {len(results)}只股票")
 
+    _send(build_footer(results))
+    logger.info(f"报告发送完成：宏观简报 + {len(results)}只个股 + 汇总 ✅")
 
-# ════════════════════════════════════════════════════════════════════════════
-#  5. 主流程 — Main
-# ════════════════════════════════════════════════════════════════════════════
-
-def main():
-    logger.info(f"开始生成报告 / Generating report: {REPORT_TYPE}")
-    logger.info(f"股票池 / Watchlist: {[t['sym'] for t in WATCHLIST]}")
-
-    macro = get_macro_snapshot()
-    logger.info(
-        f"宏观 / Macro: VIX={macro.get('vix')} DXY={macro.get('dxy')} "
-        f"US10Y={macro.get('us10y')} Crude={macro.get('crude')} "
-        f"Fed={macro.get('fed_funds_rate')}"
-    )
-
-    results = []
-    for ticker in WATCHLIST:
-        sym = ticker["sym"]
-        logger.info(f"  分析 / Analysing {sym}...")
-        try:
-            md = get_market_data(sym)
-            scores = compute_mftsr(md, macro)
-            commentary_zh = get_ai_commentary(ticker, md, scores, macro, REPORT_TYPE, "zh")
-            commentary_en = get_ai_commentary(ticker, md, scores, macro, REPORT_TYPE, "en")
-            results.append({
-                "ticker": ticker, "md": md, "scores": scores,
-                "commentary": {"zh": commentary_zh, "en": commentary_en},
-            })
-            logger.info(f"  {sym}: composite={scores['composite']} ({scores['action']})")
-        except Exception as e:
-            logger.error(f"  {sym} 失败 / failed: {e}")
-        time.sleep(2)
-
-    if not results:
-        logger.error("没有生成任何结果，终止发送 / No results generated, aborting")
-        sys.exit(1)
-
-    results.sort(key=lambda r: r["scores"]["composite"], reverse=True)
-    top_results = results[:MAX_TICKERS]
-
-    # 发送两条独立消息序列：先中文，后英文
-    send_report_lang(REPORT_TYPE, macro, top_results, "zh")
-    time.sleep(2)
-    send_report_lang(REPORT_TYPE, macro, top_results, "en")
-
-    logger.info("全部完成 / All done ✅")
+    try:
+        export_dashboard_json(macro, macro_commentary, results)
+    except Exception as e:
+        logger.error(f"Dashboard JSON导出失败（不影响Telegram报告已发送）: {e}")
 
 
 if __name__ == "__main__":
