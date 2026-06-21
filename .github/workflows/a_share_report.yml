@@ -2,6 +2,7 @@
 #
 # A股早报 — MFTSR Alpha
 # 每天一次，UK时间07:00（距A股收盘约1小时），全中文输出
+# 同时把真实持仓数据导出为 docs/a_share_data.json，提交回仓库供Dashboard读取
 
 name: A股早报
 
@@ -17,6 +18,9 @@ on:
     # - cron: '0 7 * * 1-5'
 
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   run-a-share-report:
@@ -44,3 +48,12 @@ jobs:
           CHAT_ID: ${{ secrets.CHAT_ID }}
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
         run: python a_share_report.py
+
+      - name: 提交 a_share_data.json 到仓库（供 GitHub Pages 读取）
+        run: |
+          git config user.name "mftsr-bot"
+          git config user.email "actions@github.com"
+          git add docs/a_share_data.json
+          git diff --staged --quiet && echo "无变化，跳过提交" || git commit -m "更新A股Dashboard数据 $(date -u +%Y-%m-%d)"
+          git push
+
