@@ -1,0 +1,846 @@
+import { useState, useEffect, useMemo } from "react";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MFTSR ALPHA — 真实数据版
+//
+// 数据来源：us_close_report.py（GitHub Actions，每周一/三/五 21:30 UK跑一次）
+// 跑完后把真实价格 + MFTSR评分 + AI生成的5段式解读导出为 docs/dashboard_data.json，
+// 提交到仓库；GitHub Pages 把 /docs 目录发布成公开网站，这个组件直接 fetch
+// 那个公开URL拿到当天的真实数据。AI解读不在前端重新调用，全部是脚本运行时
+// 已经生成好的文字，直接展示。
+//
+// 权重体系精确对应 MFTSR_AI_Growth_Model_EN.xlsx：
+//   宏观20% / 基本面35% / 技术面20% / 情绪10% / 风险15%
+// ─────────────────────────────────────────────────────────────────────────────
+
+// 部署地址：仓库 Maximumxc/Market-Agent 的 GitHub Pages
+// （注意：GitHub Pages域名部分强制全小写，仓库名部分保留原大小写）
+const DASHBOARD_DATA_URL = "https://maximumxc.github.io/Market-Agent/dashboard_data.json";
+const A_SHARE_DATA_URL = "https://maximumxc.github.io/Market-Agent/a_share_data.json";
+
+const MONITOR_BAND_COLORS = {
+  "Strong Upcycle": "strongbuy",
+  "Healthy Recovery": "buy",
+  "Neutral": "holdbuy",
+  "Weakening": "reduce",
+  "Downcycle": "strongsell",
+};
+
+const ACTION_BANDS = [
+  { min: 85, max: 101, label: "强烈买入", action: "积极加仓", tone: "strongbuy" },
+  { min: 75, max: 85,  label: "买入",     action: "买入",     tone: "buy" },
+  { min: 60, max: 75,  label: "持有偏多", action: "持有/逢低买入", tone: "holdbuy" },
+  { min: 50, max: 60,  label: "谨慎",     action: "谨慎",     tone: "caution" },
+  { min: 40, max: 50,  label: "减仓",     action: "减仓",     tone: "reduce" },
+  { min: 0,  max: 40,  label: "强烈卖出", action: "大幅减仓", tone: "strongsell" },
+];
+
+function actionForScore(score) {
+  for (const b of ACTION_BANDS) if (score >= b.min && score < b.max) return b;
+  return ACTION_BANDS[ACTION_BANDS.length - 1];
+}
+
+const C = {
+  bg: "#050d1a",
+  panel: "#0a1628",
+  panelAlt: "#0e1d33",
+  border: "#1a2d4a",
+  text: "#e8eaed",
+  textDim: "#8b929c",
+  textFaint: "#566177",
+  accent: "#00d4ff",
+  accentDim: "#0a3d52",
+  green: "#5fb88a",
+  amber: "#e8a33d",
+  amberDim: "#3a2e18",
+  orange: "#e8923d",
+  red: "#d9685f",
+};
+
+const toneColor = (tone) => {
+  switch (tone) {
+    case "strongbuy": return C.green;
+    case "buy": return C.green;
+    case "holdbuy": return C.amber;
+    case "caution": return C.orange;
+    case "reduce": return C.red;
+    case "strongsell": return C.red;
+    default: return C.textDim;
+  }
+};
+
+const fontMono = "'IBM Plex Mono', 'SF Mono', Consolas, monospace";
+const fontSans = "'Inter', -apple-system, system-ui, sans-serif";
+
+// ── 解析AI生成的5段式文字，拆成结构化段落供UI单独渲染 ─────────────────────────
+function parseCommentaryParagraphs(commentary) {
+  if (!commentary) return { sections: [], actionText: null };
+  const sectionRegex = /【([^-】]+)\s*-?\s*评分(\d+)\/100】([^【]*)/g;
+  const sections = [];
+  let match;
+  while ((match = sectionRegex.exec(commentary)) !== null) {
+    sections.push({
+      label: match[1].trim(),
+      score: parseInt(match[2], 10),
+      text: match[3].trim(),
+    });
+  }
+  const actionMatch = commentary.match(/【操作建议】([^【]*)/);
+  const actionText = actionMatch ? actionMatch[1].trim() : null;
+  return { sections, actionText };
+}
+
+const DIMENSION_META = {
+  "基本面": { icon: "📊" },
+  "技术面": { icon: "📈" },
+  "情绪面": { icon: "🎯" },
+  "风险面": { icon: "🛡" },
+  "宏观影响": { icon: "🌐" },
+};
+
+// ── 小组件 ────────────────────────────────────────────────────────────────────
+
+function ScoreRing({ score, size = 80, strokeWidth = 7 }) {
+  const band = actionForScore(score);
+  const color = toneColor(band.tone);
+  const r = (size - strokeWidth) / 2;
+  const circ = 2 * Math.PI * r;
+  const dash = (score / 100) * circ;
+  return (
+    <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
+      <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={C.border} strokeWidth={strokeWidth} />
+        <circle
+          cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={strokeWidth}
+          strokeDasharray={`${dash} ${circ}`} strokeLinecap="round"
+          style={{ transition: "stroke-dasharray 0.6s ease" }}
+        />
+      </svg>
+      <div style={{
+        position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center",
+        fontFamily: fontMono, fontSize: size * 0.32, fontWeight: 700, color: C.text,
+      }}>
+        {score}
+      </div>
+    </div>
+  );
+}
+
+function ActionBadge({ score, size = "md" }) {
+  const band = actionForScore(score);
+  const color = toneColor(band.tone);
+  const pad = size === "lg" ? "6px 14px" : "3px 9px";
+  const fs = size === "lg" ? 13 : 11;
+  return (
+    <span style={{
+      display: "inline-flex", alignItems: "center", gap: 6, padding: pad, borderRadius: 20,
+      fontFamily: fontSans, fontWeight: 600, fontSize: fs, color,
+      background: `${color}1a`, border: `1px solid ${color}55`,
+    }}>
+      <span style={{ width: 5, height: 5, borderRadius: "50%", background: color }} />
+      {band.action}
+    </span>
+  );
+}
+
+function DimensionBar({ icon, label, score, weight }) {
+  const band = actionForScore(score);
+  const color = toneColor(band.tone);
+  return (
+    <div style={{ marginBottom: 12 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
+        <span style={{ fontFamily: fontSans, fontSize: 13, color: C.text, display: "flex", alignItems: "center", gap: 6 }}>
+          <span>{icon}</span>{label}
+          <span style={{ color: C.textFaint, fontSize: 10.5 }}>权重{weight}</span>
+        </span>
+        <span style={{ fontFamily: fontMono, fontSize: 14, fontWeight: 700, color }}>{score}</span>
+      </div>
+      <div style={{ height: 6, background: C.border, borderRadius: 3, overflow: "hidden" }}>
+        <div style={{ height: "100%", width: `${score}%`, background: color, borderRadius: 3, transition: "width 0.6s ease" }} />
+      </div>
+    </div>
+  );
+}
+
+function WatchlistRow({ stock, selected, onSelect }) {
+  const score = stock.scores?.composite ?? 0;
+  const band = actionForScore(score);
+  const color = toneColor(band.tone);
+  const chg = stock.change_pct ?? 0;
+  const up = chg >= 0;
+
+  return (
+    <div
+      onClick={() => onSelect(stock)}
+      style={{
+        display: "grid", gridTemplateColumns: "1fr auto auto", alignItems: "center", gap: 10,
+        padding: "10px 12px", cursor: "pointer",
+        background: selected ? C.panelAlt : "transparent",
+        borderLeft: selected ? `2px solid ${C.accent}` : "2px solid transparent",
+      }}
+    >
+      <div>
+        <div style={{ fontFamily: fontMono, fontSize: 13, fontWeight: 700, color: C.text }}>{stock.sym}</div>
+        <div style={{ fontFamily: fontSans, fontSize: 10.5, color: C.textFaint, marginTop: 1 }}>{stock.sector}</div>
+      </div>
+      <div style={{ textAlign: "right" }}>
+        <div style={{ fontFamily: fontMono, fontSize: 12, color: C.textDim }}>${stock.price?.toFixed(2) ?? "—"}</div>
+        <div style={{ fontFamily: fontMono, fontSize: 11, color: up ? C.green : C.red, marginTop: 1 }}>
+          {up ? "▲" : "▼"}{Math.abs(chg).toFixed(2)}%
+        </div>
+      </div>
+      <div style={{ fontFamily: fontMono, fontSize: 15, fontWeight: 700, color, minWidth: 28, textAlign: "right" }}>
+        {score}
+      </div>
+    </div>
+  );
+}
+
+function WatchlistRowCN({ stock, selected, onSelect }) {
+  const chg = stock.change_pct ?? 0;
+  const up = chg >= 0;
+  const available = stock.available;
+
+  return (
+    <div
+      onClick={() => onSelect(stock)}
+      style={{
+        display: "grid", gridTemplateColumns: "1fr auto", alignItems: "center", gap: 10,
+        padding: "10px 12px", cursor: "pointer",
+        background: selected ? C.panelAlt : "transparent",
+        borderLeft: selected ? `2px solid ${C.accent}` : "2px solid transparent",
+      }}
+    >
+      <div>
+        <div style={{ fontFamily: fontSans, fontSize: 13, fontWeight: 700, color: C.text }}>{stock.name}</div>
+        <div style={{ fontFamily: fontMono, fontSize: 10.5, color: C.textFaint, marginTop: 1 }}>
+          {stock.sym} · {stock.sector}
+        </div>
+      </div>
+      {available ? (
+        <div style={{ textAlign: "right" }}>
+          <div style={{ fontFamily: fontMono, fontSize: 12, color: C.textDim }}>¥{stock.price?.toFixed(2) ?? "—"}</div>
+          <div style={{ fontFamily: fontMono, fontSize: 11, color: up ? C.green : C.red, marginTop: 1 }}>
+            {up ? "▲" : "▼"}{Math.abs(chg).toFixed(2)}%
+          </div>
+        </div>
+      ) : (
+        <div style={{ fontFamily: fontSans, fontSize: 10.5, color: C.textFaint }}>数据不可用</div>
+      )}
+    </div>
+  );
+}
+
+function CommentaryParagraph({ label, score, text, icon }) {
+  const band = actionForScore(score);
+  const color = toneColor(band.tone);
+  return (
+    <div style={{
+      padding: "14px 16px", background: C.panelAlt, borderRadius: 8,
+      border: `1px solid ${C.border}`, marginBottom: 10,
+    }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+        <div style={{ fontFamily: fontSans, fontSize: 13.5, fontWeight: 600, color: C.text, display: "flex", alignItems: "center", gap: 6 }}>
+          <span>{icon}</span>{label}
+        </div>
+        <div style={{ fontFamily: fontMono, fontSize: 14, fontWeight: 700, color }}>{score}/100</div>
+      </div>
+      <div style={{ fontFamily: fontSans, fontSize: 13, color: C.textDim, lineHeight: 1.7, whiteSpace: "pre-wrap" }}>
+        {text}
+      </div>
+    </div>
+  );
+}
+
+// ── 主组件 ────────────────────────────────────────────────────────────────────
+
+export default function MFTSRDashboard() {
+  const [data, setData] = useState(null);
+  const [aShareData, setAShareData] = useState(null);
+  const [aShareError, setAShareError] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [selectedSym, setSelectedSym] = useState(null);
+  const [tab, setTab] = useState("report");
+  const [region, setRegion] = useState("us"); // us | cn
+
+  useEffect(() => {
+    fetch(DASHBOARD_DATA_URL)
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then((json) => {
+        setData(json);
+        if (json.stocks && json.stocks.length > 0) {
+          setSelectedSym(json.stocks[0].sym);
+        }
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError(err.message);
+        setLoading(false);
+      });
+
+    // A股数据单独fetch，失败不影响美股Dashboard主流程显示
+    fetch(A_SHARE_DATA_URL)
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then((json) => setAShareData(json))
+      .catch((err) => setAShareError(err.message));
+  }, []);
+
+  const selected = useMemo(
+    () => data?.stocks?.find((s) => s.sym === selectedSym),
+    [data, selectedSym]
+  );
+
+  const selectedCN = useMemo(() => {
+    if (!aShareData) return null;
+    const all = [...(aShareData.holdings || []), ...(aShareData.watchlist || [])];
+    return all.find((s) => s.sym === selectedSym);
+  }, [aShareData, selectedSym]);
+
+  const parsed = useMemo(
+    () => (selected ? parseCommentaryParagraphs(selected.commentary) : { sections: [], actionText: null }),
+    [selected]
+  );
+
+  if (loading) {
+    return (
+      <div style={{
+        background: C.bg, minHeight: "100vh", display: "flex", alignItems: "center",
+        justifyContent: "center", color: C.textDim, fontFamily: fontSans,
+      }}>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontSize: 28, marginBottom: 12 }}>◈</div>
+          <div>正在加载真实市场数据...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div style={{
+        background: C.bg, minHeight: "100vh", display: "flex", alignItems: "center",
+        justifyContent: "center", color: C.text, fontFamily: fontSans, padding: 24,
+      }}>
+        <div style={{ maxWidth: 480, textAlign: "center" }}>
+          <div style={{ fontSize: 28, marginBottom: 12, color: C.red }}>⚠️</div>
+          <div style={{ fontWeight: 600, marginBottom: 8 }}>无法加载Dashboard数据</div>
+          <div style={{ color: C.textFaint, fontSize: 13, lineHeight: 1.6, marginBottom: 16 }}>
+            {error || "未知错误"}
+            <br /><br />
+            这通常意味着：
+            <br />1. GitHub Actions还没有运行过一次（首次需要手动触发 us_close_report.py workflow）
+            <br />2. GitHub Pages还没有启用，或 docs/dashboard_data.json 还不存在
+            <br />3. DASHBOARD_DATA_URL 常量需要改成你自己仓库的实际地址
+          </div>
+          <div style={{
+            fontFamily: fontMono, fontSize: 11, color: C.textFaint, background: C.panel,
+            padding: 10, borderRadius: 6, wordBreak: "break-all",
+          }}>
+            当前配置的URL: {DASHBOARD_DATA_URL}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const watchlist = data.stocks || [];
+  const aShareAll = aShareData ? [...(aShareData.holdings || []), ...(aShareData.watchlist || [])] : [];
+
+  return (
+    <div style={{ background: C.bg, minHeight: "100vh", color: C.text, fontFamily: fontSans }}>
+      <div style={{
+        borderBottom: `1px solid ${C.border}`, padding: "14px 22px", background: C.panel,
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+      }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
+          <span style={{ fontFamily: fontMono, fontSize: 16, fontWeight: 700, color: C.accent }}>
+            ◈ MFTSR ALPHA
+          </span>
+          <span style={{ fontFamily: fontSans, fontSize: 12, color: C.textFaint }}>
+            真实数据 · 更新于 {data.generated_at_uk} (UK时间)
+          </span>
+        </div>
+        <div style={{ fontFamily: fontMono, fontSize: 11, color: C.textFaint }}>
+          权重: 宏观20% 基本面35% 技术面20% 情绪10% 风险15%
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "260px 1fr", minHeight: "calc(100vh - 53px)" }}>
+        <div style={{ borderRight: `1px solid ${C.border}`, background: C.panel, overflowY: "auto" }}>
+          <div style={{ display: "flex", padding: "10px 12px 0", gap: 6 }}>
+            {[["us", "🇺🇸 美股"], ["cn", "🇨🇳 A股"]].map(([key, label]) => (
+              <button
+                key={key}
+                onClick={() => setRegion(key)}
+                style={{
+                  flex: 1, background: region === key ? C.accentDim : "transparent",
+                  border: `1px solid ${region === key ? C.accent : C.border}`,
+                  color: region === key ? C.accent : C.textFaint,
+                  borderRadius: 6, padding: "6px 8px", fontFamily: fontSans, fontSize: 12, cursor: "pointer",
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {region === "us" ? (
+            <>
+              <div style={{
+                padding: "10px 12px 6px", fontFamily: fontSans, fontSize: 10.5,
+                color: C.textFaint, letterSpacing: "0.08em", textTransform: "uppercase",
+              }}>
+                股票池 WATCHLIST · {watchlist.length}
+              </div>
+              {watchlist.map((s) => (
+                <WatchlistRow key={s.sym} stock={s} selected={selectedSym === s.sym} onSelect={(s2) => setSelectedSym(s2.sym)} />
+              ))}
+            </>
+          ) : (
+            <>
+              <div style={{
+                padding: "10px 12px 6px", fontFamily: fontSans, fontSize: 10.5,
+                color: C.textFaint, letterSpacing: "0.08em", textTransform: "uppercase",
+              }}>
+                A股持仓+关注 · {aShareAll.length}
+              </div>
+              {aShareError && (
+                <div style={{ padding: "10px 12px", fontFamily: fontSans, fontSize: 11, color: C.red }}>
+                  A股数据加载失败: {aShareError}
+                </div>
+              )}
+              {aShareAll.map((s) => (
+                <WatchlistRowCN key={s.sym} stock={s} selected={selectedSym === s.sym} onSelect={(s2) => setSelectedSym(s2.sym)} />
+              ))}
+            </>
+          )}
+        </div>
+
+        <div style={{ padding: "20px 24px", overflowY: "auto" }}>
+          <div style={{ display: "flex", gap: 6, marginBottom: 18 }}>
+            {[["report", "📊 分析报告"], ["model", "🧠 模型框架"], ["monitors", "🔭 独立监测"], ["legend", "📐 评分标准"]].map(([key, label]) => (
+              <button
+                key={key} onClick={() => setTab(key)}
+                style={{
+                  background: tab === key ? C.accentDim : "transparent",
+                  border: `1px solid ${tab === key ? C.accent : C.border}`,
+                  color: tab === key ? C.accent : C.textDim,
+                  borderRadius: 8, padding: "8px 16px", fontFamily: fontSans, fontSize: 13, cursor: "pointer",
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {tab === "report" && region === "cn" && (
+            <div>
+              <div style={{
+                background: C.panel, border: `1px solid ${C.border}`, borderRadius: 10, padding: 16, marginBottom: 16,
+              }}>
+                <div style={{ fontFamily: fontSans, fontSize: 13, fontWeight: 600, color: C.accent, marginBottom: 10 }}>
+                  🌐 海外宏观背景
+                </div>
+                <div style={{ fontFamily: fontSans, fontSize: 12.5, color: C.textDim, lineHeight: 1.7, whiteSpace: "pre-wrap", maxHeight: 140, overflowY: "auto" }}>
+                  {aShareData?.macro_commentary || (aShareError ? `加载失败: ${aShareError}` : "正在加载...")}
+                </div>
+              </div>
+
+              <div style={{
+                background: C.panel, border: `1px solid ${C.border}`, borderRadius: 10, padding: 16, marginBottom: 16,
+              }}>
+                <div style={{ fontFamily: fontSans, fontSize: 13, fontWeight: 600, color: C.accent, marginBottom: 10 }}>
+                  🇨🇳 国内政策面与消息面
+                </div>
+                <div style={{ fontFamily: fontSans, fontSize: 12.5, color: C.textDim, lineHeight: 1.7, whiteSpace: "pre-wrap", maxHeight: 140, overflowY: "auto" }}>
+                  {aShareData?.china_commentary || "暂无数据"}
+                </div>
+                <div style={{ marginTop: 8, fontFamily: fontSans, fontSize: 10.5, color: C.textFaint, fontStyle: "italic" }}>
+                  ⚠️ 地缘政治/政策面分析为AI定性判断，非实时新闻，请结合最新公告核实。
+                </div>
+              </div>
+
+              {selectedCN ? (
+                <div style={{
+                  background: C.panel, border: `1px solid ${C.border}`, borderRadius: 10, padding: 18,
+                }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
+                    <div>
+                      <div style={{ fontFamily: fontSans, fontSize: 20, fontWeight: 700 }}>{selectedCN.name}</div>
+                      <div style={{ fontFamily: fontMono, fontSize: 12, color: C.textDim, marginTop: 2 }}>
+                        {selectedCN.sym} · {selectedCN.sector}
+                      </div>
+                    </div>
+                    {selectedCN.available ? (
+                      <div style={{ textAlign: "right" }}>
+                        <div style={{ fontFamily: fontMono, fontSize: 20 }}>¥{selectedCN.price?.toFixed(2)}</div>
+                        <div style={{ fontFamily: fontMono, fontSize: 13, color: selectedCN.change_pct >= 0 ? C.green : C.red, marginTop: 2 }}>
+                          {selectedCN.change_pct >= 0 ? "+" : ""}{selectedCN.change_pct?.toFixed(2)}%
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ fontFamily: fontSans, fontSize: 12, color: C.textFaint }}>⚠️ 数据不可用</div>
+                    )}
+                  </div>
+
+                  {selectedCN.available && (
+                    <div style={{ display: "flex", gap: 20, marginBottom: 14, fontFamily: fontMono, fontSize: 12 }}>
+                      <div><span style={{ color: C.textFaint }}>MA5 </span>{selectedCN.ma5 ?? "—"}</div>
+                      <div><span style={{ color: C.textFaint }}>MA20 </span>{selectedCN.ma20 ?? "—"}</div>
+                      <div><span style={{ color: C.textFaint }}>RSI </span>{selectedCN.rsi ?? "—"}</div>
+                      <div><span style={{ color: C.textFaint }}>量比 </span>{selectedCN.vol_ratio ?? "—"}</div>
+                    </div>
+                  )}
+
+                  <div style={{
+                    padding: "14px 16px", background: C.panelAlt, borderRadius: 8, border: `1px solid ${C.border}`,
+                    fontFamily: fontSans, fontSize: 13, color: C.textDim, lineHeight: 1.7, whiteSpace: "pre-wrap",
+                  }}>
+                    {selectedCN.commentary || "暂无AI解读"}
+                  </div>
+
+                  <div style={{ marginTop: 10, fontFamily: fontSans, fontSize: 10.5, color: C.textFaint }}>
+                    A股报告为简化版（价格+MA/RSI+AI简评），不含完整MFTSR五维评分体系。
+                  </div>
+                </div>
+              ) : (
+                <div style={{ fontFamily: fontSans, fontSize: 13, color: C.textFaint, textAlign: "center", padding: 40 }}>
+                  从左侧选择一只A股持仓或关注标的
+                </div>
+              )}
+            </div>
+          )}
+
+          {tab === "report" && region === "us" && selected && (
+            <div>
+              <div style={{
+                background: C.panel, border: `1px solid ${C.border}`, borderRadius: 10, padding: 16, marginBottom: 16,
+              }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                  <div style={{ fontFamily: fontSans, fontSize: 13, fontWeight: 600, color: C.accent }}>
+                    🌐 今日宏观简报
+                  </div>
+                  <div style={{ fontFamily: fontMono, fontSize: 11, color: C.textFaint }}>
+                    VIX {data.macro?.vix ?? "—"} · DXY {data.macro?.dxy ?? "—"} · US10Y {data.macro?.us10y ?? "—"}%
+                  </div>
+                </div>
+                <div style={{ fontFamily: fontSans, fontSize: 12.5, color: C.textDim, lineHeight: 1.7, whiteSpace: "pre-wrap", maxHeight: 160, overflowY: "auto" }}>
+                  {data.macro?.commentary || "暂无宏观简报"}
+                </div>
+              </div>
+
+              <div style={{
+                background: C.panel, border: `1px solid ${C.border}`, borderRadius: 10, padding: 18, marginBottom: 16,
+                display: "flex", justifyContent: "space-between", alignItems: "flex-start",
+              }}>
+                <div>
+                  <div style={{ fontFamily: fontMono, fontSize: 24, fontWeight: 700 }}>{selected.sym}</div>
+                  <div style={{ fontFamily: fontSans, fontSize: 13, color: C.textDim, marginTop: 2 }}>
+                    {selected.name} · {selected.sector}
+                  </div>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontFamily: fontMono, fontSize: 20 }}>${selected.price?.toFixed(2)}</div>
+                  <div style={{ fontFamily: fontMono, fontSize: 13, color: selected.change_pct >= 0 ? C.green : C.red, marginTop: 2 }}>
+                    {selected.change_pct >= 0 ? "+" : ""}{selected.change_pct?.toFixed(2)}%
+                  </div>
+                </div>
+              </div>
+
+              <div style={{
+                background: C.panel, border: `1px solid ${C.border}`, borderRadius: 10, padding: 18, marginBottom: 16,
+              }}>
+                <div style={{ display: "flex", gap: 20, marginBottom: 18 }}>
+                  <ScoreRing score={selected.scores.composite} />
+                  <div>
+                    <div style={{ fontFamily: fontSans, fontSize: 11, color: C.textFaint, letterSpacing: "0.06em", marginBottom: 6 }}>
+                      MFTSR 综合评分
+                    </div>
+                    <ActionBadge score={selected.scores.composite} size="lg" />
+                    {selected.scores.alerts?.length > 0 && (
+                      <div style={{ marginTop: 8, fontFamily: fontSans, fontSize: 11, color: C.red }}>
+                        ⚠️ 风险警报: {selected.scores.alerts.join(", ")}维度评分极低
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ marginLeft: "auto", display: "flex", gap: 16, alignItems: "center" }}>
+                    {[
+                      { label: "RSI", val: selected.rsi },
+                      { label: "PE", val: selected.pe_ratio },
+                      { label: "PEG", val: selected.peg_ratio },
+                    ].map((m) => (
+                      <div key={m.label} style={{ textAlign: "center" }}>
+                        <div style={{ fontFamily: fontMono, fontSize: 15, fontWeight: 700 }}>{m.val ?? "—"}</div>
+                        <div style={{ fontSize: 10, color: C.textFaint }}>{m.label}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ fontFamily: fontSans, fontSize: 11, color: C.textFaint, letterSpacing: "0.06em", marginBottom: 12 }}>
+                  五维评分 FIVE-DIMENSION SCORES
+                </div>
+                <DimensionBar icon="🌐" label="宏观 Macro" score={selected.scores.macro} weight="20%" />
+                <DimensionBar icon="📊" label="基本面 Fundamental" score={selected.scores.fundamental} weight="35%" />
+                <DimensionBar icon="📈" label="技术面 Technical" score={selected.scores.technical} weight="20%" />
+                <DimensionBar icon="🎯" label="情绪 Sentiment" score={selected.scores.sentiment} weight="10%" />
+                <DimensionBar icon="🛡" label="风险 Risk" score={selected.scores.risk} weight="15%" />
+              </div>
+
+              <div style={{
+                background: C.panel, border: `1px solid ${C.border}`, borderRadius: 10, padding: 18,
+              }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                  <div style={{ fontFamily: fontSans, fontSize: 13, fontWeight: 600, color: C.text }}>
+                    📝 AI分析报告
+                  </div>
+                  <button
+                    onClick={() => navigator.clipboard?.writeText(selected.commentary || "")}
+                    style={{
+                      background: "transparent", border: `1px solid ${C.border}`, borderRadius: 6,
+                      padding: "4px 10px", color: C.textFaint, fontSize: 11, cursor: "pointer", fontFamily: fontSans,
+                    }}
+                  >
+                    复制
+                  </button>
+                </div>
+
+                {parsed.sections.length > 0 ? (
+                  <>
+                    {parsed.sections.map((sec, i) => {
+                      const meta = DIMENSION_META[sec.label] || { icon: "▪" };
+                      return (
+                        <CommentaryParagraph
+                          key={i} label={sec.label} score={sec.score} text={sec.text} icon={meta.icon}
+                        />
+                      );
+                    })}
+                    {parsed.actionText && (
+                      <div style={{
+                        marginTop: 10, padding: "14px 16px", background: C.accentDim,
+                        border: `1px solid ${C.accent}40`, borderRadius: 8,
+                      }}>
+                        <div style={{ fontFamily: fontSans, fontSize: 13, fontWeight: 600, color: C.accent, marginBottom: 6 }}>
+                          🎯 操作建议
+                        </div>
+                        <div style={{ fontFamily: fontSans, fontSize: 13, color: C.text, lineHeight: 1.7, whiteSpace: "pre-wrap" }}>
+                          {parsed.actionText}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div style={{ fontFamily: fontSans, fontSize: 13, color: C.textDim, lineHeight: 1.7, whiteSpace: "pre-wrap" }}>
+                    {selected.commentary || "暂无AI解读"}
+                  </div>
+                )}
+
+                <div style={{ marginTop: 14, paddingTop: 12, borderTop: `1px solid ${C.border}`, display: "flex", gap: 20 }}>
+                  <div>
+                    <span style={{ fontFamily: fontSans, fontSize: 11, color: C.textFaint }}>止损参考 </span>
+                    <span style={{ fontFamily: fontMono, fontSize: 13, fontWeight: 700, color: C.red }}>${selected.scores.stop_loss}</span>
+                  </div>
+                  <div>
+                    <span style={{ fontFamily: fontSans, fontSize: 11, color: C.textFaint }}>仓位建议 </span>
+                    <span style={{ fontFamily: fontMono, fontSize: 13, fontWeight: 700, color: C.accent }}>≤{selected.scores.position_pct}%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {tab === "model" && (
+            <div>
+              <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 10, padding: 18, marginBottom: 16 }}>
+                <div style={{ fontFamily: fontSans, fontSize: 15, fontWeight: 700, color: C.accent, marginBottom: 4 }}>
+                  MFTSR 五维量化模型
+                </div>
+                <div style={{ fontFamily: fontSans, fontSize: 12, color: C.textFaint }}>
+                  权重精确对应 MFTSR_AI_Growth_Model_EN.xlsx：宏观20% / 基本面35% / 技术面20% / 情绪10% / 风险15%
+                </div>
+              </div>
+
+              {[
+                {
+                  icon: "🌐", label: "宏观 Macro", weight: "20%", color: C.accent,
+                  items: ["Fed Funds Rate 18%", "10Y Treasury 18%", "Core PCE 10%", "Unemployment 10%",
+                          "Nonfarm Payroll 10%", "ISM PMI 10%", "DXY 5%", "WTI Oil 12%", "WTI 1M chg 7%"],
+                },
+                {
+                  icon: "📊", label: "基本面 Fundamental", weight: "35%", color: C.green,
+                  items: ["Revenue Growth 20%", "Profit Growth 20%", "FCF Margin 12.25%",
+                          "Gross Margin 10.5%", "EPS Growth 12.25%", "Forward PE 7.5%", "PEG 10%", "FCF Yield 7.5%"],
+                },
+                {
+                  icon: "📈", label: "技术面 Technical", weight: "20%", color: C.amber,
+                  items: ["Trend Composite 25%", "3M相对强弱vs QQQ 25%", "RSI(14) 15%",
+                          "成交量比 15%", "30日波动率 10%", "Beta 10%"],
+                },
+                {
+                  icon: "🎯", label: "情绪 Sentiment", weight: "10%", color: C.orange,
+                  items: ["VIX 60%", "Put/Call比率(代理) 20%", "分析师评级正向占比 20%"],
+                },
+                {
+                  icon: "🛡", label: "风险 Risk", weight: "15%", color: C.red,
+                  items: ["VIX 45%", "10Y国债收益率 35%", "信用利差(代理) 20%"],
+                },
+              ].map((sec) => (
+                <div key={sec.label} style={{
+                  background: C.panel, border: `1px solid ${C.border}`, borderRadius: 10, padding: 16, marginBottom: 12,
+                }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontSize: 18 }}>{sec.icon}</span>
+                      <span style={{ fontFamily: fontSans, fontWeight: 600, fontSize: 14, color: sec.color }}>{sec.label}</span>
+                    </div>
+                    <span style={{ fontFamily: fontMono, fontSize: 11, color: C.textFaint, background: C.panelAlt, padding: "2px 8px", borderRadius: 4 }}>
+                      权重 {sec.weight}
+                    </span>
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+                    {sec.items.map((item, i) => (
+                      <div key={i} style={{ display: "flex", gap: 8, fontSize: 11.5, color: C.textDim }}>
+                        <span style={{ color: sec.color }}>•</span>{item}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+
+              <div style={{
+                background: C.amberDim, border: `1px solid ${C.amber}40`, borderRadius: 10, padding: 16,
+                fontFamily: fontSans, fontSize: 12, color: C.textDim, lineHeight: 1.7,
+              }}>
+                <strong style={{ color: C.amber }}>说明：</strong> AI Industrial Policy / Geopolitical Score /
+                CNN Fear &amp; Greed / Market Liquidity 四项已从评分中移除（按用户指示），其定性背景仅出现在
+                宏观简报文字中，不参与任何维度的数值计算。部分子指标（ISM PMI、Put/Call比率、信用利差）因无
+                免费实时数据源，使用代理近似值，已在AI解读中标注。
+              </div>
+            </div>
+          )}
+
+          {tab === "monitors" && (
+            <div>
+              <div style={{
+                background: C.amberDim, border: `1px solid ${C.amber}40`, borderRadius: 10, padding: 16, marginBottom: 16,
+                fontFamily: fontSans, fontSize: 12, color: C.textDim, lineHeight: 1.7,
+              }}>
+                <strong style={{ color: C.amber }}>独立于MFTSR评分。</strong> 以下5个模块追踪外部行业周期
+                （存储芯片定价、AI资本支出、半导体周期、中国政策、电力转型），完全不参与MFTSR综合分计算，
+                仅作为额外参考维度。每个子指标都是Claude基于知识库的定性判断，不是实时数据，已逐项标注理由。
+              </div>
+
+              {data.monitors && Object.keys(data.monitors).length > 0 ? (
+                Object.entries(data.monitors).map(([key, mon]) => {
+                  const tone = MONITOR_BAND_COLORS[mon.band] || "holdbuy";
+                  const color = toneColor(tone);
+                  return (
+                    <div key={key} style={{
+                      background: C.panel, border: `1px solid ${C.border}`, borderRadius: 10,
+                      marginBottom: 14, overflow: "hidden",
+                    }}>
+                      <div style={{
+                        padding: "14px 18px", borderBottom: `1px solid ${C.border}`,
+                        display: "flex", justifyContent: "space-between", alignItems: "center",
+                      }}>
+                        <div>
+                          <div style={{ fontFamily: fontSans, fontSize: 14, fontWeight: 600, color: C.text }}>
+                            {mon.label} <span style={{ color: C.textFaint, fontSize: 11.5 }}>· {mon.label_zh}</span>
+                          </div>
+                          <div style={{ fontFamily: fontSans, fontSize: 11, color: C.textFaint, marginTop: 3 }}>
+                            {mon.applicable_note}
+                          </div>
+                        </div>
+                        <div style={{ textAlign: "right" }}>
+                          <div style={{ fontFamily: fontMono, fontSize: 22, fontWeight: 700, color }}>{mon.composite}</div>
+                          <div style={{ fontFamily: fontSans, fontSize: 10.5, color }}>{mon.band_zh}</div>
+                        </div>
+                      </div>
+
+                      <div style={{ padding: "8px 18px" }}>
+                        {mon.metrics.map((m) => (
+                          <div key={m.key} style={{
+                            display: "flex", justifyContent: "space-between", alignItems: "flex-start",
+                            padding: "8px 0", borderBottom: `1px solid ${C.border}`, gap: 12,
+                          }}>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ fontFamily: fontSans, fontSize: 12.5, color: C.text }}>
+                                {m.label} <span style={{ color: C.textFaint, fontSize: 10.5 }}>· 权重{Math.round(m.weight * 100)}%</span>
+                              </div>
+                              <div style={{ fontFamily: fontSans, fontSize: 11, color: C.textFaint, marginTop: 2 }}>
+                                {m.rationale}
+                              </div>
+                            </div>
+                            <div style={{
+                              fontFamily: fontMono, fontSize: 14, fontWeight: 700,
+                              color: m.score >= 70 ? C.green : m.score >= 45 ? C.amber : C.red,
+                            }}>
+                              {m.score}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div style={{
+                        padding: "10px 18px", fontFamily: fontSans, fontSize: 11, color: C.textFaint,
+                        fontStyle: "italic", background: C.panelAlt,
+                      }}>
+                        {mon.caveat} <span style={{ color: C.amber }}>（AI定性判断，非实时数据）</span>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div style={{ fontFamily: fontSans, fontSize: 13, color: C.textFaint, textAlign: "center", padding: 40 }}>
+                  暂无监测数据（可能本次报告未生成monitors字段，或数据加载失败）
+                </div>
+              )}
+            </div>
+          )}
+
+          {tab === "legend" && (
+            <div>
+              <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden" }}>
+                {ACTION_BANDS.map((b, i) => {
+                  const color = toneColor(b.tone);
+                  const rangeLabel = b.max >= 101 ? `≥${b.min}` : i === ACTION_BANDS.length - 1 ? `<${b.max}` : `${b.min}–${b.max}`;
+                  return (
+                    <div key={b.label} style={{
+                      display: "flex", alignItems: "center", gap: 14, padding: "14px 18px",
+                      borderBottom: i < ACTION_BANDS.length - 1 ? `1px solid ${C.border}` : "none",
+                    }}>
+                      <div style={{ fontFamily: fontMono, fontSize: 13, fontWeight: 700, color, minWidth: 90 }}>{rangeLabel}</div>
+                      <div style={{ width: 8, height: 8, borderRadius: "50%", background: color }} />
+                      <div>
+                        <div style={{ fontFamily: fontSans, fontSize: 13.5 }}>{b.label}</div>
+                        <div style={{ fontFamily: fontSans, fontSize: 11.5, color: C.textFaint }}>{b.action}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div style={{ marginTop: 14, padding: 14, background: C.panelAlt, border: `1px solid ${C.border}`, borderRadius: 8, fontFamily: fontSans, fontSize: 12, color: C.textDim }}>
+                与Excel模型Dashboard的Action Guide完全一致：&gt;85积极加仓 / 75-85买入 / 60-75持有逢低买入 /
+                50-60谨慎 / 40-50减仓 / &lt;40大幅减仓。
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div style={{
+        borderTop: `1px solid ${C.border}`, padding: "8px 22px", background: C.panel,
+        fontFamily: fontSans, fontSize: 10.5, color: C.textFaint, textAlign: "center",
+      }}>
+        真实数据来自 GitHub Actions（每周一/三/五 21:30 UK）· 仅供参考，不构成投资建议
+      </div>
+    </div>
+  );
+}
