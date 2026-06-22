@@ -76,7 +76,7 @@ SCORE_LEGEND_ZH = (
     "  🟡   60-75分  持有偏多 → 持有/逢低买入\n"
     "  🟠   50-60分  谨慎    → 谨慎\n"
     "  🔴   40-50分  减仓    → 减仓\n"
-    "  🔴🔴 <40分    强烈卖出 → 大幅减仓"
+    "  🔴🔴 &lt;40分    强烈卖出 → 大幅减仓"
 )
 
 
@@ -1128,6 +1128,7 @@ def main():
     time.sleep(1)
 
     results = []
+    failures = []
     for ticker in WATCHLIST:
         sym = ticker["sym"]
         logger.info(f"  分析 {sym}...")
@@ -1139,10 +1140,23 @@ def main():
             logger.info(f"  {sym}: composite={scores['composite']} ({scores['label']})")
         except Exception as e:
             logger.error(f"  {sym} 失败: {e}")
+            failures.append(f"{sym}: {e}")
         time.sleep(2)
 
     if not results:
-        logger.error("没有生成任何结果，终止发送")
+        logger.error(f"没有生成任何结果，终止发送。失败详情（共{len(failures)}只）：")
+        for f in failures:
+            logger.error(f"  - {f}")
+        # 即使Telegram什么都没收到，也尝试发一条简短警报，让问题至少能被看到
+        try:
+            _send(
+                f"🚨 <b>美股收盘报告运行失败</b>\n"
+                f"全部{len(WATCHLIST)}只股票均分析失败，未生成任何报告。\n"
+                f"首个错误: {_escape(failures[0]) if failures else '未知'}\n"
+                f"请检查GitHub Actions日志排查具体原因。"
+            )
+        except Exception:
+            pass
         sys.exit(1)
 
     header_sent = _send(build_macro_message(macro, macro_commentary))
