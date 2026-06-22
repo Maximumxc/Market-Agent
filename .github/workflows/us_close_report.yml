@@ -60,6 +60,11 @@ jobs:
           git config user.email "actions@github.com"
           git add docs/dashboard_data.json
           git diff --staged --quiet && echo "无变化，跳过提交" || git commit -m "更新Dashboard数据 $(date -u +%Y-%m-%d)"
-          git push
-
+          # 推送前先拉取远端最新代码并rebase，避免因为同时有人手动提交文件
+          # 导致 "rejected (fetch first)" 错误。最多重试3次。
+          for i in 1 2 3; do
+            git pull --rebase origin main && git push && break
+            echo "推送失败，第${i}次重试..."
+            sleep 5
+          done
 
