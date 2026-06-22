@@ -38,7 +38,7 @@ A_SHARE_HOLDINGS = [
     {"sym": "000166.SZ", "name": "申万宏源",      "type": "stock", "sector": "证券"},
     {"sym": "603986.SS", "name": "兆易创新",      "type": "stock", "sector": "半导体/存储芯片设计"},
     {"sym": "688525.SS", "name": "佰维存储",      "type": "stock", "sector": "存储芯片"},
-    {"sym": "300383.SZ", "name": "江波龙",        "type": "stock", "sector": "存储芯片"},
+    {"sym": "301308.SZ", "name": "江波龙",        "type": "stock", "sector": "存储芯片"},
     {"sym": "000543.SZ", "name": "皖能电力",      "type": "stock", "sector": "电力"},
     {"sym": "512880.SS", "name": "证券ETF",       "type": "etf",   "sector": "证券板块"},
     {"sym": "516100.SS", "name": "金融科技ETF",   "type": "etf",   "sector": "金融科技"},
