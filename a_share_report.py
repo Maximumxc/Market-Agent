@@ -396,7 +396,13 @@ def send_a_share_report():
         time.sleep(1.5)
 
     # ── 发送 ──
-    _send(build_header())
+    header_sent = _send(build_header())
+    if not header_sent:
+        logger.error(
+            "首条消息发送失败，可能是 TELEGRAM_TOKEN 或 CHAT_ID 配置错误。"
+            "终止本次报告发送（后续消息大概率也会失败），workflow将标记为失败以便排查。"
+        )
+        sys.exit(1)
     time.sleep(1)
 
     _send(f"\n<b>🌐 海外宏观背景</b>\n{'─'*28}\n{_escape(macro_commentary)}")

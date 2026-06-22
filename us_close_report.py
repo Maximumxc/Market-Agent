@@ -1145,7 +1145,13 @@ def main():
         logger.error("没有生成任何结果，终止发送")
         sys.exit(1)
 
-    _send(build_macro_message(macro, macro_commentary))
+    header_sent = _send(build_macro_message(macro, macro_commentary))
+    if not header_sent:
+        logger.error(
+            "首条消息发送失败，可能是 TELEGRAM_TOKEN 或 CHAT_ID 配置错误。"
+            "终止本次报告发送，workflow将标记为失败以便排查。"
+        )
+        sys.exit(1)
     time.sleep(1.5)
 
     results.sort(key=lambda r: r["scores"]["composite"], reverse=True)
