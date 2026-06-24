@@ -43,6 +43,10 @@ ANTHROPIC_KEY  = os.environ.get("ANTHROPIC_KEY", "")
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "")
 CHAT_ID        = os.environ.get("CHAT_ID", "")
 FRED_API_KEY   = os.environ.get("FRED_API_KEY", "")
+# 控制是否发送Telegram消息。设为"false"时，脚本仍会完整计算所有评分+AI解读+
+# 监测模块，并导出Dashboard JSON，但跳过所有Telegram发送——用于"只看网页，
+# 不再接收推送"的场景（仍保留每周自动运行以刷新网页数据）。
+SEND_TELEGRAM = os.environ.get("SEND_TELEGRAM", "true").lower() not in ("false", "0", "no")
 
 _watchlist_env = os.environ.get("WATCHLIST", "")
 if _watchlist_env.strip():
@@ -735,6 +739,9 @@ BASE_URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}"
 
 
 def _send(text: str) -> bool:
+    if not SEND_TELEGRAM:
+        logger.info("SEND_TELEGRAM=false，跳过Telegram发送（仅生成Dashboard数据）")
+        return True
     if not TELEGRAM_TOKEN or not CHAT_ID:
         logger.error("Telegram 未配置，跳过发送")
         return False

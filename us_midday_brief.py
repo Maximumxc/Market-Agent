@@ -16,6 +16,7 @@ us_midday_brief.py — 美股简报 · UK时间 16:00 推送
 """
 
 import os
+import sys
 import time
 import logging
 from datetime import datetime
@@ -97,10 +98,10 @@ def get_sector_performance() -> list:
 # ════════════════════════════════════════════════════════════════════════════
 
 def get_stock_technical(sym: str) -> dict:
-    """获取价格+简化技术指标：RSI、MA20/50、量比。"""
+    """获取价格+简化技术指标：RSI、MA20/50/100、量比、顶部/底部形态确认。"""
     try:
         ticker = yf.Ticker(sym)
-        hist = ticker.history(period="90d", interval="1d")
+        hist = ticker.history(period="150d", interval="1d")  # 延长至150天以支持MA100计算
         if hist.empty:
             return {"sym": sym, "available": False}
 
@@ -112,6 +113,7 @@ def get_stock_technical(sym: str) -> dict:
 
         ma20 = float(close.rolling(20).mean().iloc[-1]) if n_days >= 20 else None
         ma50 = float(close.rolling(50).mean().iloc[-1]) if n_days >= 50 else None
+        ma100 = float(close.rolling(100).mean().iloc[-1]) if n_days >= 100 else None
 
         delta = close.diff()
         gain = delta.clip(lower=0).rolling(14).mean()
@@ -124,15 +126,64 @@ def get_stock_technical(sym: str) -> dict:
 
         thin_history = n_days < 20
 
+        # ── 顶部/底部形态确认 ──────────────────────────────────────────────
+        # 规则：在窗口内寻找"真正的局部极值点"——即该点价格严格高于其前方
+        # 至少5天的起点价格（说明此前确实在上涨），且严格高于其后续价格的
+        # 最低点（说明此后确实在回落），二者同时满足才算"顶部"；底部反之。
+        # 这避免了把"持续上涨/下跌途中的某一点"误判为转折点——真正的顶/底
+        # 必须是涨势和跌势的交界处，前后都要有实际方向变化，而不能是平台
+        # 区间内随便一点。窗口需要至少26天数据（20天分析窗口+前后各3天缓冲，
+        # 缓冲用于确认极值点不是窗口边缘的伪信号）。
+        top_bottom_pattern = None
+        if n_days >= 26:
+            window = close.tail(26).reset_index(drop=True)
+            latest_in_window = float(window.iloc[-1])
+            candidates = []
+
+            for offset in range(5, len(window) - 1):  # 留至少5天前置缓冲，1天后置缓冲
+                point_price = float(window.iloc[offset])
+                before_start = float(window.iloc[offset - 5])  # 5天前的价格，用于判断"此前是否上涨/下跌"
+                after_min = float(window.iloc[offset + 1:].min())
+                after_max = float(window.iloc[offset + 1:].max())
+
+                rose_before = point_price > before_start * 1.01   # 此前确实涨了至少1%（排除平台）
+                fell_before = point_price < before_start * 0.99   # 此前确实跌了至少1%
+
+                pullback_pct = (point_price - latest_in_window) / point_price * 100 if point_price > 0 else 0
+                bounce_pct = (latest_in_window - point_price) / point_price * 100 if point_price > 0 else 0
+
+                # 顶部：此前上涨到此点，此点之后的最高价不再超过此点(即此点是后续区间最高)，且现价已回落>=3%
+                if rose_before and point_price >= after_max and pullback_pct >= 3:
+                    candidates.append({
+                        "type": "top_confirmed", "extreme_price": round(point_price, 2),
+                        "days_ago": len(window) - 1 - offset, "pullback_pct": round(pullback_pct, 1),
+                        "_strength": pullback_pct,
+                    })
+                # 底部：此前下跌到此点，此点之后的最低价不再低于此点，且现价已反弹>=3%
+                elif fell_before and point_price <= after_min and bounce_pct >= 3:
+                    candidates.append({
+                        "type": "bottom_confirmed", "extreme_price": round(point_price, 2),
+                        "days_ago": len(window) - 1 - offset, "bounce_pct": round(bounce_pct, 1),
+                        "_strength": bounce_pct,
+                    })
+
+            if candidates:
+                best = sorted(candidates, key=lambda c: (-c["_strength"], c["days_ago"]))[0]
+                best.pop("_strength")
+                top_bottom_pattern = best
+
         return {
             "sym": sym, "available": True, "thin_history": thin_history,
             "price": round(latest, 2), "change_pct": round(change_pct, 2),
             "ma20": round(ma20, 2) if ma20 is not None else "N/A",
             "ma50": round(ma50, 2) if ma50 is not None else "N/A",
+            "ma100": round(ma100, 2) if ma100 is not None else "N/A",
             "above_ma20": (latest > ma20) if ma20 is not None else None,
             "above_ma50": (latest > ma50) if ma50 is not None else None,
+            "above_ma100": (latest > ma100) if ma100 is not None else None,
             "rsi": round(rsi, 1) if rsi is not None else "N/A",
             "vol_ratio": round(vol_ratio, 2),
+            "top_bottom_pattern": top_bottom_pattern,
         }
     except Exception as e:
         logger.warning(f"{sym} 技术面获取失败: {e}")
@@ -156,7 +207,7 @@ def technical_summary_zh(data: dict) -> str:
         else:
             parts.append(f"RSI={rsi:.0f}中性")
 
-    above20, above50 = data.get("above_ma20"), data.get("above_ma50")
+    above20, above50, above100 = data.get("above_ma20"), data.get("above_ma50"), data.get("above_ma100")
     if above20 is not None and above50 is not None:
         if above20 and above50:
             parts.append("站上MA20/50，趋势偏多")
@@ -165,11 +216,25 @@ def technical_summary_zh(data: dict) -> str:
         else:
             parts.append("均线交织，趋势不明")
 
+    if above100 is not None:
+        parts.append("站上MA100，中期趋势健康" if above100 else "跌破MA100，中期趋势转弱")
+
     vol_ratio = data.get("vol_ratio", 1)
     if vol_ratio > 1.5:
         parts.append(f"放量{vol_ratio:.1f}x")
     elif vol_ratio < 0.5:
         parts.append(f"缩量{vol_ratio:.1f}x")
+
+    pattern = data.get("top_bottom_pattern")
+    if pattern:
+        if pattern["type"] == "top_confirmed":
+            parts.append(
+                f"⚠️顶部确认：{pattern['days_ago']}日前触及${pattern['extreme_price']}高点后回落{pattern['pullback_pct']}%"
+            )
+        elif pattern["type"] == "bottom_confirmed":
+            parts.append(
+                f"✅底部确认：{pattern['days_ago']}日前触及${pattern['extreme_price']}低点后反弹{pattern['bounce_pct']}%"
+            )
 
     return "，".join(parts) if parts else "信号中性"
 
@@ -361,7 +426,13 @@ def send_midday_brief():
         time.sleep(2)
 
     # ── 发送 ──
-    _send(build_header())
+    header_sent = _send(build_header())
+    if not header_sent:
+        logger.error(
+            "首条消息发送失败，可能是 TELEGRAM_TOKEN 或 CHAT_ID 配置错误。"
+            "终止本次简报发送，workflow将标记为失败以便排查。"
+        )
+        sys.exit(1)
     time.sleep(1)
 
     _send(build_market_overview_msg(overview, sectors))

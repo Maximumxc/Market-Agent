@@ -18,18 +18,18 @@ US_WATCHLIST = [
     {"sym": "NEE",    "name": "NextEra Energy",              "sector": "Utilities/Renewables"},
     {"sym": "GEV",    "name": "GE Vernova",                  "sector": "Power/Grid Equipment"},
     {"sym": "CEG",    "name": "Constellation Energy",        "sector": "Nuclear/Power Generation"},
-    {"sym": "SMCI",   "name": "Super Micro Computer",        "sector": "AI Servers/Hardware"},
     {"sym": "META",   "name": "Meta Platforms",              "sector": "Digital Ads/AI"},
     {"sym": "NOW",    "name": "ServiceNow",                  "sector": "Enterprise Software"},
     {"sym": "ADBE",   "name": "Adobe Inc",                   "sector": "Software/Creative Cloud"},
     {"sym": "SPCX",   "name": "SpaceX (Space Exploration Technologies)", "sector": "Aerospace/Satellite/AI"},
     # 注：SPCX于2026年6月12日IPO，价格历史极短，长周期技术指标(MA200/MA50/RSI)
     # 在上市初期会持续标注"数据不足"而非误导性数字。
+    # 注：SMCI已按用户指示从股票池中彻底移除（不再被任何报告跟踪）。
 ]
 
 
 # ════════════════════════════════════════════════════════════════════════════
-#  A股持仓 + ETF + 关注清单（07:00 A股早报专用）
+#  A股持仓 + 关注清单（07:00 A股早报 Telegram推送专用 —— 不含ETF）
 #  代码格式：上交所 .SS 后缀，深交所 .SZ 后缀（yfinance惯例）
 # ════════════════════════════════════════════════════════════════════════════
 
@@ -40,6 +40,18 @@ A_SHARE_HOLDINGS = [
     {"sym": "688525.SS", "name": "佰维存储",      "type": "stock", "sector": "存储芯片"},
     {"sym": "301308.SZ", "name": "江波龙",        "type": "stock", "sector": "存储芯片"},
     {"sym": "000543.SZ", "name": "皖能电力",      "type": "stock", "sector": "电力"},
+    {"sym": "600276.SS", "name": "恒瑞医药",      "type": "stock", "sector": "创新药/医药制造"},
+    {"sym": "603259.SS", "name": "药明康德",      "type": "stock", "sector": "医药研发外包(CRO/CDMO)"},
+    {"sym": "000983.SZ", "name": "山西焦煤",      "type": "stock", "sector": "煤炭开采(焦煤)"},
+    {"sym": "601001.SS", "name": "晋控煤业",      "type": "stock", "sector": "煤炭开采"},
+]
+
+# ════════════════════════════════════════════════════════════════════════════
+#  A股相关ETF —— 已从Telegram早报中移除（按用户指示），仅供 Dashboard 网页
+#  展示使用（Dashboard希望保留全部ETF + 新增的4只个股）
+# ════════════════════════════════════════════════════════════════════════════
+
+A_SHARE_ETFS = [
     {"sym": "512880.SS", "name": "证券ETF",       "type": "etf",   "sector": "证券板块"},
     {"sym": "516100.SS", "name": "金融科技ETF",   "type": "etf",   "sector": "金融科技"},
     {"sym": "159020.SZ", "name": "养殖ETF易方达",  "type": "etf",   "sector": "农业养殖"},
@@ -49,6 +61,9 @@ A_SHARE_HOLDINGS = [
     {"sym": "159920.SZ", "name": "恒生ETF华夏",   "type": "etf",   "sector": "港股大盘"},
     {"sym": "513500.SS", "name": "标普500ETF博时", "type": "etf",   "sector": "美股大盘"},
 ]
+
+# Dashboard专用：持仓个股 + ETF 全部一起展示（不发Telegram，只用于网页JSON导出）
+A_SHARE_DASHBOARD_ALL = A_SHARE_HOLDINGS + A_SHARE_ETFS
 
 A_SHARE_WATCHLIST = [
     {"sym": "300502.SZ", "name": "新易盛", "type": "stock", "sector": "光模块"},

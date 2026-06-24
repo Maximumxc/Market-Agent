@@ -27,7 +27,7 @@ import numpy as np
 import yfinance as yf
 import anthropic
 
-from shared_config import A_SHARE_HOLDINGS, A_SHARE_WATCHLIST, A_SHARE_ALL
+from shared_config import A_SHARE_HOLDINGS, A_SHARE_WATCHLIST, A_SHARE_ALL, A_SHARE_ETFS, A_SHARE_DASHBOARD_ALL
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("a_share")
@@ -129,13 +129,14 @@ def vix_regime_zh(vix) -> str:
 
 def get_a_share_data(sym: str) -> dict:
     """
-    抓取A股个股/ETF价格与技术指标。
+    抓取A股个股/ETF价格与技术指标：MA5/MA20/MA100、RSI、量比、顶部/底部形态确认。
+    技术面分析逻辑与美股简报(us_midday_brief.py)完全一致，确保两边标准统一。
     yfinance对A股支持有限，常有延迟15-20分钟或数据缺失 — 这是已知限制，
     缺失时标注"数据不可用"，不引入付费数据源。
     """
     try:
         ticker = yf.Ticker(sym)
-        hist = ticker.history(period="60d", interval="1d")
+        hist = ticker.history(period="150d", interval="1d")  # 延长至150天以支持MA100计算
         if hist.empty:
             return {"sym": sym, "available": False}
 
@@ -146,8 +147,9 @@ def get_a_share_data(sym: str) -> dict:
         prev   = float(close.iloc[-2]) if n_days > 1 else latest
         change_pct = (latest - prev) / prev * 100 if prev else 0
 
-        ma5  = float(close.rolling(5).mean().iloc[-1])  if n_days >= 5  else None
-        ma20 = float(close.rolling(20).mean().iloc[-1]) if n_days >= 20 else None
+        ma5   = float(close.rolling(5).mean().iloc[-1])   if n_days >= 5   else None
+        ma20  = float(close.rolling(20).mean().iloc[-1])  if n_days >= 20  else None
+        ma100 = float(close.rolling(100).mean().iloc[-1]) if n_days >= 100 else None
 
         delta = close.diff()
         gain = delta.clip(lower=0).rolling(14).mean()
@@ -158,19 +160,110 @@ def get_a_share_data(sym: str) -> dict:
         avg_vol = float(volume.rolling(20).mean().iloc[-1]) if n_days >= 20 else float(volume.mean())
         vol_ratio = float(volume.iloc[-1]) / avg_vol if avg_vol > 0 else 1.0
 
+        # ── 顶部/底部形态确认（与us_midday_brief.py的逻辑完全一致）────────────
+        # 在窗口内寻找"真正的局部极值点"——该点价格严格高于其前方至少5天的
+        # 起点价格(此前确实在涨)，且严格不低于其后续所有价格(此后确实在跌)，
+        # 二者同时满足才算"顶部"；底部反之。避免把单边趋势途中的某一点误判为
+        # 转折点。窗口需要至少26天数据。
+        top_bottom_pattern = None
+        if n_days >= 26:
+            window = close.tail(26).reset_index(drop=True)
+            latest_in_window = float(window.iloc[-1])
+            candidates = []
+
+            for offset in range(5, len(window) - 1):
+                point_price = float(window.iloc[offset])
+                before_start = float(window.iloc[offset - 5])
+                after_min = float(window.iloc[offset + 1:].min())
+                after_max = float(window.iloc[offset + 1:].max())
+
+                rose_before = point_price > before_start * 1.01
+                fell_before = point_price < before_start * 0.99
+
+                pullback_pct = (point_price - latest_in_window) / point_price * 100 if point_price > 0 else 0
+                bounce_pct = (latest_in_window - point_price) / point_price * 100 if point_price > 0 else 0
+
+                if rose_before and point_price >= after_max and pullback_pct >= 3:
+                    candidates.append({
+                        "type": "top_confirmed", "extreme_price": round(point_price, 2),
+                        "days_ago": len(window) - 1 - offset, "pullback_pct": round(pullback_pct, 1),
+                        "_strength": pullback_pct,
+                    })
+                elif fell_before and point_price <= after_min and bounce_pct >= 3:
+                    candidates.append({
+                        "type": "bottom_confirmed", "extreme_price": round(point_price, 2),
+                        "days_ago": len(window) - 1 - offset, "bounce_pct": round(bounce_pct, 1),
+                        "_strength": bounce_pct,
+                    })
+
+            if candidates:
+                best = sorted(candidates, key=lambda c: (-c["_strength"], c["days_ago"]))[0]
+                best.pop("_strength")
+                top_bottom_pattern = best
+
         return {
             "sym": sym, "available": True,
             "price": round(latest, 2), "change_pct": round(change_pct, 2),
             "ma5": round(ma5, 2) if ma5 is not None else "N/A",
             "ma20": round(ma20, 2) if ma20 is not None else "N/A",
+            "ma100": round(ma100, 2) if ma100 is not None else "N/A",
             "above_ma5": (latest > ma5) if ma5 is not None else None,
             "above_ma20": (latest > ma20) if ma20 is not None else None,
+            "above_ma100": (latest > ma100) if ma100 is not None else None,
             "rsi": round(rsi, 1) if rsi is not None else "N/A",
             "vol_ratio": round(vol_ratio, 2),
+            "top_bottom_pattern": top_bottom_pattern,
         }
     except Exception as e:
         logger.warning(f"{sym} A股数据获取失败: {e}")
         return {"sym": sym, "available": False, "error": str(e)}
+
+
+def technical_summary_zh(data: dict) -> str:
+    """基于规则给出一句话技术面简评，逻辑与美股简报一致（不调用AI，省成本）。"""
+    if not data.get("available"):
+        return "数据不可用"
+
+    parts = []
+    rsi = data.get("rsi")
+    if isinstance(rsi, (int, float)):
+        if rsi > 70:
+            parts.append(f"RSI={rsi:.0f}超买")
+        elif rsi < 30:
+            parts.append(f"RSI={rsi:.0f}超卖")
+        else:
+            parts.append(f"RSI={rsi:.0f}中性")
+
+    above5, above20, above100 = data.get("above_ma5"), data.get("above_ma20"), data.get("above_ma100")
+    if above5 is not None and above20 is not None:
+        if above5 and above20:
+            parts.append("站上MA5/20，趋势偏多")
+        elif not above5 and not above20:
+            parts.append("跌破MA5/20，趋势偏空")
+        else:
+            parts.append("均线交织，趋势不明")
+
+    if above100 is not None:
+        parts.append("站上MA100，中期趋势健康" if above100 else "跌破MA100，中期趋势转弱")
+
+    vol_ratio = data.get("vol_ratio", 1)
+    if vol_ratio > 1.5:
+        parts.append(f"放量{vol_ratio:.1f}x")
+    elif vol_ratio < 0.5:
+        parts.append(f"缩量{vol_ratio:.1f}x")
+
+    pattern = data.get("top_bottom_pattern")
+    if pattern:
+        if pattern["type"] == "top_confirmed":
+            parts.append(
+                f"⚠️顶部确认：{pattern['days_ago']}日前触及¥{pattern['extreme_price']}高点后回落{pattern['pullback_pct']}%"
+            )
+        elif pattern["type"] == "bottom_confirmed":
+            parts.append(
+                f"✅底部确认：{pattern['days_ago']}日前触及¥{pattern['extreme_price']}低点后反弹{pattern['bounce_pct']}%"
+            )
+
+    return "，".join(parts) if parts else "信号中性"
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -282,18 +375,28 @@ def build_holding_prompt(item: dict, data: dict):
     if not data.get("available"):
         return None
 
-    ma5_str  = data.get("ma5", "N/A")
-    ma20_str = data.get("ma20", "N/A")
-    rsi_str  = data.get("rsi", "N/A")
+    ma5_str   = data.get("ma5", "N/A")
+    ma20_str  = data.get("ma20", "N/A")
+    ma100_str = data.get("ma100", "N/A")
+    rsi_str   = data.get("rsi", "N/A")
+
+    pattern = data.get("top_bottom_pattern")
+    pattern_note = ""
+    if pattern:
+        if pattern["type"] == "top_confirmed":
+            pattern_note = f"\n⚠️ 顶部形态确认：{pattern['days_ago']}日前触及¥{pattern['extreme_price']}高点后回落{pattern['pullback_pct']}%"
+        elif pattern["type"] == "bottom_confirmed":
+            pattern_note = f"\n✅ 底部形态确认：{pattern['days_ago']}日前触及¥{pattern['extreme_price']}低点后反弹{pattern['bounce_pct']}%"
 
     return f"""请用2-3句话简评 {name}（{sym}，{sector}），用简体中文，直接给出操作建议，不要章节标题：
 
 价格: ¥{data['price']} ({data['change_pct']:+.2f}%)
-MA5/MA20: {ma5_str} / {ma20_str}
+MA5/MA20/MA100: {ma5_str} / {ma20_str} / {ma100_str}
 RSI(14): {rsi_str}
-成交量比: {data['vol_ratio']:.1f}x
+成交量比: {data['vol_ratio']:.1f}x{pattern_note}
 
-要求：结合技术面给出今日/近期操作倾向（加仓/持有/减仓/观察），一句话即可，不要展开分析过程。"""
+要求：结合技术面（包括MA100中期趋势、顶部/底部形态信号）给出今日/近期操作倾向
+（加仓/持有/减仓/观察），一句话即可，不要展开分析过程。"""
 
 
 def get_holding_commentary(item: dict, data: dict) -> str:
@@ -365,11 +468,24 @@ def build_holding_line(item: dict, data: dict, commentary: str) -> str:
         trend = "多头" if (data["above_ma5"] and data["above_ma20"]) else ("空头" if not (data["above_ma5"] or data["above_ma20"]) else "震荡")
         ma_line = f"  趋势: {trend}  "
 
+    ma100_note = ""
+    if data.get("above_ma100") is not None:
+        ma100_note = "  MA100上方" if data["above_ma100"] else "  MA100下方"
+
     rsi_str = f"RSI={data['rsi']}" if isinstance(data.get("rsi"), (int, float)) else ""
+
+    pattern_line = ""
+    pattern = data.get("top_bottom_pattern")
+    if pattern:
+        if pattern["type"] == "top_confirmed":
+            pattern_line = f"\n  ⚠️ 顶部确认：{pattern['days_ago']}日前高点¥{pattern['extreme_price']}，已回落{pattern['pullback_pct']}%"
+        elif pattern["type"] == "bottom_confirmed":
+            pattern_line = f"\n  ✅ 底部确认：{pattern['days_ago']}日前低点¥{pattern['extreme_price']}，已反弹{pattern['bounce_pct']}%"
 
     return (
         f"\n{color_emoji} <b>{name}</b> ({sym})\n"
-        f"  💰 ¥{data['price']}  {arrow}{abs(chg):.2f}%  {ma_line}{rsi_str}  Vol={data['vol_ratio']:.1f}x\n"
+        f"  💰 ¥{data['price']}  {arrow}{abs(chg):.2f}%  {ma_line}{rsi_str}{ma100_note}  Vol={data['vol_ratio']:.1f}x"
+        f"{pattern_line}\n"
         f"  {_escape(commentary)}\n"
     )
 
@@ -387,13 +503,20 @@ def send_a_share_report():
     china_commentary = get_china_policy_commentary()
     time.sleep(1)
 
-    # 3. 持仓 + 关注清单
+    # 3. 持仓 + 关注清单（Telegram推送用，不含ETF）
     holding_results = []
     for item in A_SHARE_ALL:
         data = get_a_share_data(item["sym"])
         commentary = get_holding_commentary(item, data) if data.get("available") else ""
         holding_results.append({"item": item, "data": data, "commentary": commentary})
         time.sleep(1.5)
+
+    # 3b. ETF数据（仅供Dashboard网页展示，不进入Telegram推送）
+    etf_results = []
+    for item in A_SHARE_ETFS:
+        data = get_a_share_data(item["sym"])
+        etf_results.append({"item": item, "data": data, "commentary": ""})  # ETF不生成AI简评，节省成本
+        time.sleep(1)
 
     # ── 发送 ──
     header_sent = _send(build_header())
@@ -432,16 +555,20 @@ def send_a_share_report():
     logger.info("A股早报发送完成 ✅")
 
     try:
-        export_a_share_json(us_snap, china_commentary, macro_commentary, holding_results)
+        export_a_share_json(us_snap, china_commentary, macro_commentary, holding_results + etf_results)
     except Exception as e:
         logger.error(f"A股Dashboard JSON导出失败（不影响Telegram报告已发送）: {e}")
 
 
-def export_a_share_json(us_snap, china_commentary, macro_commentary, holding_results, path="docs/a_share_data.json"):
+def export_a_share_json(us_snap, china_commentary, macro_commentary, all_results, path="docs/a_share_data.json"):
     """
     把A股早报的真实数据导出为JSON，供Dashboard网页读取。
     输出路径与美股的 dashboard_data.json 分开（a_share_data.json），
     前端会分别fetch两个文件，在Dashboard里用"美股/A股"切换显示。
+
+    all_results 包含持仓个股 + 关注清单 + ETF（ETF不出现在Telegram推送里，
+    但Dashboard网页按用户要求保留全部ETF展示）。按 sym 归类到三个桶：
+    holdings / watchlist / etfs。
     """
     import json
 
@@ -451,6 +578,11 @@ def export_a_share_json(us_snap, china_commentary, macro_commentary, holding_res
         if isinstance(v, (int, float, str, bool)):
             return v
         return str(v)
+
+    def serialize_pattern(pattern):
+        if not pattern:
+            return None
+        return {k: safe(v) for k, v in pattern.items()}
 
     payload = {
         "generated_at": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -468,30 +600,38 @@ def export_a_share_json(us_snap, china_commentary, macro_commentary, holding_res
         },
         "holdings": [],
         "watchlist": [],
+        "etfs": [],
     }
 
     holding_syms = {h["sym"] for h in A_SHARE_HOLDINGS}
     watchlist_syms = {w["sym"] for w in A_SHARE_WATCHLIST}
+    etf_syms = {e["sym"] for e in A_SHARE_ETFS}
 
-    for r in holding_results:
+    for r in all_results:
         item, data, commentary = r["item"], r["data"], r["commentary"]
         entry = {
             "sym": item["sym"], "name": item["name"], "type": item["type"], "sector": item["sector"],
             "available": data.get("available", False),
             "price": safe(data.get("price")), "change_pct": safe(data.get("change_pct")),
-            "ma5": safe(data.get("ma5")), "ma20": safe(data.get("ma20")),
+            "ma5": safe(data.get("ma5")), "ma20": safe(data.get("ma20")), "ma100": safe(data.get("ma100")),
             "rsi": safe(data.get("rsi")), "vol_ratio": safe(data.get("vol_ratio")),
+            "top_bottom_pattern": serialize_pattern(data.get("top_bottom_pattern")),
             "commentary": commentary,
         }
         if item["sym"] in holding_syms:
             payload["holdings"].append(entry)
         elif item["sym"] in watchlist_syms:
             payload["watchlist"].append(entry)
+        elif item["sym"] in etf_syms:
+            payload["etfs"].append(entry)
 
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=2)
-    logger.info(f"A股Dashboard JSON导出完成: {path} ({len(payload['holdings'])}持仓 + {len(payload['watchlist'])}关注)")
+    logger.info(
+        f"A股Dashboard JSON导出完成: {path} "
+        f"({len(payload['holdings'])}持仓 + {len(payload['watchlist'])}关注 + {len(payload['etfs'])}ETF)"
+    )
 
 
 def main():
