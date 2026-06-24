@@ -299,7 +299,7 @@ export default function MFTSRDashboard() {
 
   const selectedCN = useMemo(() => {
     if (!aShareData) return null;
-    const all = [...(aShareData.holdings || []), ...(aShareData.watchlist || [])];
+    const all = [...(aShareData.holdings || []), ...(aShareData.watchlist || []), ...(aShareData.etfs || [])];
     return all.find((s) => s.sym === selectedSym);
   }, [aShareData, selectedSym]);
 
@@ -351,7 +351,10 @@ export default function MFTSRDashboard() {
   }
 
   const watchlist = data.stocks || [];
-  const aShareAll = aShareData ? [...(aShareData.holdings || []), ...(aShareData.watchlist || [])] : [];
+  const aShareHoldings = aShareData?.holdings || [];
+  const aShareWatchlist = aShareData?.watchlist || [];
+  const aShareEtfs = aShareData?.etfs || [];
+  const aShareAll = [...aShareHoldings, ...aShareWatchlist, ...aShareEtfs];
 
   return (
     <div style={{ background: C.bg, minHeight: "100vh", color: C.text, fontFamily: fontSans }}>
@@ -405,18 +408,39 @@ export default function MFTSRDashboard() {
             </>
           ) : (
             <>
-              <div style={{
-                padding: "10px 12px 6px", fontFamily: fontSans, fontSize: 10.5,
-                color: C.textFaint, letterSpacing: "0.08em", textTransform: "uppercase",
-              }}>
-                A股持仓+关注 · {aShareAll.length}
-              </div>
               {aShareError && (
                 <div style={{ padding: "10px 12px", fontFamily: fontSans, fontSize: 11, color: C.red }}>
                   A股数据加载失败: {aShareError}
                 </div>
               )}
-              {aShareAll.map((s) => (
+
+              <div style={{
+                padding: "10px 12px 6px", fontFamily: fontSans, fontSize: 10.5,
+                color: C.textFaint, letterSpacing: "0.08em", textTransform: "uppercase",
+              }}>
+                持仓 · {aShareHoldings.length}
+              </div>
+              {aShareHoldings.map((s) => (
+                <WatchlistRowCN key={s.sym} stock={s} selected={selectedSym === s.sym} onSelect={(s2) => setSelectedSym(s2.sym)} />
+              ))}
+
+              <div style={{
+                padding: "14px 12px 6px", fontFamily: fontSans, fontSize: 10.5,
+                color: C.textFaint, letterSpacing: "0.08em", textTransform: "uppercase",
+              }}>
+                关注清单 · {aShareWatchlist.length}
+              </div>
+              {aShareWatchlist.map((s) => (
+                <WatchlistRowCN key={s.sym} stock={s} selected={selectedSym === s.sym} onSelect={(s2) => setSelectedSym(s2.sym)} />
+              ))}
+
+              <div style={{
+                padding: "14px 12px 6px", fontFamily: fontSans, fontSize: 10.5,
+                color: C.textFaint, letterSpacing: "0.08em", textTransform: "uppercase",
+              }}>
+                ETF · {aShareEtfs.length}
+              </div>
+              {aShareEtfs.map((s) => (
                 <WatchlistRowCN key={s.sym} stock={s} selected={selectedSym === s.sym} onSelect={(s2) => setSelectedSym(s2.sym)} />
               ))}
             </>
@@ -491,11 +515,28 @@ export default function MFTSRDashboard() {
                   </div>
 
                   {selectedCN.available && (
-                    <div style={{ display: "flex", gap: 20, marginBottom: 14, fontFamily: fontMono, fontSize: 12 }}>
+                    <div style={{ display: "flex", gap: 20, marginBottom: 14, fontFamily: fontMono, fontSize: 12, flexWrap: "wrap" }}>
                       <div><span style={{ color: C.textFaint }}>MA5 </span>{selectedCN.ma5 ?? "—"}</div>
                       <div><span style={{ color: C.textFaint }}>MA20 </span>{selectedCN.ma20 ?? "—"}</div>
+                      <div><span style={{ color: C.textFaint }}>MA100 </span>{selectedCN.ma100 ?? "—"}</div>
                       <div><span style={{ color: C.textFaint }}>RSI </span>{selectedCN.rsi ?? "—"}</div>
                       <div><span style={{ color: C.textFaint }}>量比 </span>{selectedCN.vol_ratio ?? "—"}</div>
+                    </div>
+                  )}
+
+                  {selectedCN.available && selectedCN.top_bottom_pattern && (
+                    <div style={{
+                      marginBottom: 14, padding: "10px 14px", borderRadius: 8,
+                      background: C.panelAlt,
+                      border: `1px solid ${selectedCN.top_bottom_pattern.type === "top_confirmed" ? C.red : C.green}55`,
+                      fontFamily: fontSans, fontSize: 12.5,
+                      color: selectedCN.top_bottom_pattern.type === "top_confirmed" ? C.red : C.green,
+                    }}>
+                      {selectedCN.top_bottom_pattern.type === "top_confirmed" ? (
+                        <>⚠️ 顶部确认：{selectedCN.top_bottom_pattern.days_ago}日前触及¥{selectedCN.top_bottom_pattern.extreme_price}高点后回落{selectedCN.top_bottom_pattern.pullback_pct}%</>
+                      ) : (
+                        <>✅ 底部确认：{selectedCN.top_bottom_pattern.days_ago}日前触及¥{selectedCN.top_bottom_pattern.extreme_price}低点后反弹{selectedCN.top_bottom_pattern.bounce_pct}%</>
+                      )}
                     </div>
                   )}
 
@@ -507,7 +548,7 @@ export default function MFTSRDashboard() {
                   </div>
 
                   <div style={{ marginTop: 10, fontFamily: fontSans, fontSize: 10.5, color: C.textFaint }}>
-                    A股报告为简化版（价格+MA/RSI+AI简评），不含完整MFTSR五维评分体系。
+                    A股报告为简化版（价格+MA5/20/100/RSI+顶底形态+AI简评），不含完整MFTSR五维评分体系。
                   </div>
                 </div>
               ) : (
