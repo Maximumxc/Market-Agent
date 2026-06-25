@@ -42,7 +42,7 @@ A_SHARE_HOLDINGS = [
     {"sym": "000543.SZ", "name": "皖能电力",      "type": "stock", "sector": "电力"},
     {"sym": "600276.SS", "name": "恒瑞医药",      "type": "stock", "sector": "创新药/医药制造"},
     {"sym": "603259.SS", "name": "药明康德",      "type": "stock", "sector": "医药研发外包(CRO/CDMO)"},
-    {"sym": "000983.SZ", "name": "山西焦煤",      "type": "stock", "sector": "煤炭开采(焦煤)"},
+    {"sym": "601666.SS", "name": "平煤股份",      "type": "stock", "sector": "煤炭开采(焦煤)"},
     {"sym": "601001.SS", "name": "晋控煤业",      "type": "stock", "sector": "煤炭开采"},
 ]
 
