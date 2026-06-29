@@ -143,13 +143,28 @@ def get_a_share_data(sym: str) -> dict:
         close = hist["Close"]
         volume = hist["Volume"]
         n_days = len(close)
+
+        # ⚠️ 关键修复：yfinance对A股数据偶尔会返回"非空但最后一行是NaN"的情况
+        # （比如当天数据还没完全同步，Volume有值但Close还是空），这种情况下
+        # hist.empty检查通不过，但latest会变成nan，后续所有'is not None'判断
+        # 都拦不住nan（nan确实不是None），导致价格显示成"¥nan"。这里显式检查
+        # 最后几行是否为有效数字，无效就当作数据不可用处理。
+        if np.isnan(close.iloc[-1]) or close.iloc[-1] <= 0:
+            logger.warning(f"{sym} 最新价格为NaN或非正数，视为数据不可用")
+            return {"sym": sym, "available": False}
+
         latest = float(close.iloc[-1])
-        prev   = float(close.iloc[-2]) if n_days > 1 else latest
+        prev   = float(close.iloc[-2]) if n_days > 1 and not np.isnan(close.iloc[-2]) else latest
         change_pct = (latest - prev) / prev * 100 if prev else 0
 
-        ma5   = float(close.rolling(5).mean().iloc[-1])   if n_days >= 5   else None
-        ma20  = float(close.rolling(20).mean().iloc[-1])  if n_days >= 20  else None
-        ma100 = float(close.rolling(100).mean().iloc[-1]) if n_days >= 100 else None
+        def _safe_ma(rolling_mean_series):
+            """滚动均线计算结果若为NaN（窗口内有缺失值污染），返回None而非nan。"""
+            val = rolling_mean_series.iloc[-1]
+            return float(val) if not np.isnan(val) else None
+
+        ma5   = _safe_ma(close.rolling(5).mean())   if n_days >= 5   else None
+        ma20  = _safe_ma(close.rolling(20).mean())  if n_days >= 20  else None
+        ma100 = _safe_ma(close.rolling(100).mean()) if n_days >= 100 else None
 
         delta = close.diff()
         gain = delta.clip(lower=0).rolling(14).mean()
@@ -157,8 +172,11 @@ def get_a_share_data(sym: str) -> dict:
         rs   = gain / loss.replace(0, np.nan)
         rsi  = float(100 - (100 / (1 + rs)).iloc[-1]) if n_days >= 14 and not rs.isna().iloc[-1] else None
 
-        avg_vol = float(volume.rolling(20).mean().iloc[-1]) if n_days >= 20 else float(volume.mean())
-        vol_ratio = float(volume.iloc[-1]) / avg_vol if avg_vol > 0 else 1.0
+        avg_vol_raw = float(volume.rolling(20).mean().iloc[-1]) if n_days >= 20 else float(volume.mean())
+        avg_vol = avg_vol_raw if not np.isnan(avg_vol_raw) else 0
+        latest_vol = float(volume.iloc[-1])
+        latest_vol = latest_vol if not np.isnan(latest_vol) else 0
+        vol_ratio = latest_vol / avg_vol if avg_vol > 0 else 1.0
 
         # ── 顶部/底部形态确认（与us_midday_brief.py的逻辑完全一致）────────────
         # 在窗口内寻找"真正的局部极值点"——该点价格严格高于其前方至少5天的

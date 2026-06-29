@@ -97,17 +97,29 @@ def get_market_data(sym: str) -> dict:
 
         close, volume = hist["Close"], hist["Volume"]
         n_days = len(close)
+
+        # ⚠️ 关键修复：yfinance偶尔返回'非空但最后一行是NaN'的数据（当天数据
+        # 未完全同步），hist.empty检查通不过但latest会变成nan，后续'is not None'
+        # 判断拦不住nan（nan确实不是None），导致价格显示异常。这里显式拦截。
+        if np.isnan(close.iloc[-1]) or close.iloc[-1] <= 0:
+            logger.warning(f"{sym} 最新价格为NaN或非正数，视为数据不可用")
+            return _fallback(sym)
+
         latest = float(close.iloc[-1])
-        prev   = float(close.iloc[-2]) if len(close) > 1 else latest
+        prev   = float(close.iloc[-2]) if len(close) > 1 and not np.isnan(close.iloc[-2]) else latest
         change_pct = (latest - prev) / prev * 100
 
         hi_52w = float(close.tail(252).max())
         lo_52w = float(close.tail(252).min())
 
-        ma5   = float(close.rolling(5).mean().iloc[-1])   if n_days >= 5   else None
-        ma20  = float(close.rolling(20).mean().iloc[-1])  if n_days >= 20  else None
-        ma50  = float(close.rolling(50).mean().iloc[-1])  if n_days >= 50  else None
-        ma200 = float(close.rolling(200).mean().iloc[-1]) if n_days >= 200 else None
+        def _safe_ma(rolling_mean_series):
+            val = rolling_mean_series.iloc[-1]
+            return float(val) if not np.isnan(val) else None
+
+        ma5   = _safe_ma(close.rolling(5).mean())   if n_days >= 5   else None
+        ma20  = _safe_ma(close.rolling(20).mean())  if n_days >= 20  else None
+        ma50  = _safe_ma(close.rolling(50).mean())  if n_days >= 50  else None
+        ma200 = _safe_ma(close.rolling(200).mean()) if n_days >= 200 else None
         thin_history = n_days < 50
 
         ma_cross = None
@@ -116,10 +128,11 @@ def get_market_data(sym: str) -> dict:
             ma20_series = close.rolling(20).mean()
             today_diff  = ma5_series.iloc[-1] - ma20_series.iloc[-1]
             yest_diff   = ma5_series.iloc[-2] - ma20_series.iloc[-2]
-            if yest_diff <= 0 and today_diff > 0:
-                ma_cross = "golden"
-            elif yest_diff >= 0 and today_diff < 0:
-                ma_cross = "death"
+            if not (np.isnan(today_diff) or np.isnan(yest_diff)):
+                if yest_diff <= 0 and today_diff > 0:
+                    ma_cross = "golden"
+                elif yest_diff >= 0 and today_diff < 0:
+                    ma_cross = "death"
 
         delta = close.diff()
         gain  = delta.clip(lower=0).rolling(14).mean()
@@ -127,8 +140,11 @@ def get_market_data(sym: str) -> dict:
         rs    = gain / loss.replace(0, np.nan)
         rsi   = float(100 - (100 / (1 + rs)).iloc[-1]) if n_days >= 14 and not rs.isna().iloc[-1] else None
 
-        avg_vol   = float(volume.rolling(20).mean().iloc[-1]) if n_days >= 20 else float(volume.mean())
-        vol_ratio = float(volume.iloc[-1]) / avg_vol if avg_vol > 0 else 1.0
+        avg_vol_raw = float(volume.rolling(20).mean().iloc[-1]) if n_days >= 20 else float(volume.mean())
+        avg_vol = avg_vol_raw if not np.isnan(avg_vol_raw) else 0
+        latest_vol = float(volume.iloc[-1])
+        latest_vol = latest_vol if not np.isnan(latest_vol) else 0
+        vol_ratio = latest_vol / avg_vol if avg_vol > 0 else 1.0
 
         rel_strength_3m = None
         try:
