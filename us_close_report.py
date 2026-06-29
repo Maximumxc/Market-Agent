@@ -1040,7 +1040,12 @@ def compute_monitor_scores() -> dict:
 
 def export_dashboard_json(macro, macro_commentary, results, monitors=None, path="docs/dashboard_data.json"):
     def safe(v):
+        """把None/异常类型/NaN统一转成JSON合法值（NaN不是合法JSON，会导致
+        浏览器JSON.parse()拒绝解析整个文件——之前A股那边就因为这个问题
+        导致Dashboard网页"数据加载失败"，这里同步修复防止同样问题）。"""
         if v is None:
+            return None
+        if isinstance(v, float) and np.isnan(v):
             return None
         if isinstance(v, (int, float, str, bool)):
             return v

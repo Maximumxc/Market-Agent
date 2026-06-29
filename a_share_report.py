@@ -591,7 +591,14 @@ def export_a_share_json(us_snap, china_commentary, macro_commentary, all_results
     import json
 
     def safe(v):
+        """把None/异常类型/NaN统一转成JSON合法值。
+        ⚠️ 关键修复：之前这里漏了NaN检查——nan确实是float类型，会通过
+        isinstance检查不被拦截，导致json.dump()写出字面的NaN（非标准JSON），
+        浏览器的标准JSON.parse()读到NaN直接报错拒绝解析整个文件
+        （这正是之前导致网页"A股数据加载失败"的根本原因）。"""
         if v is None:
+            return None
+        if isinstance(v, float) and np.isnan(v):
             return None
         if isinstance(v, (int, float, str, bool)):
             return v
